@@ -90,6 +90,10 @@ Halaman resmi EZCloud tetap mencantumkan App SDK untuk P2P NAT traversal (STUN),
 3. Minta Uniview mengonfirmasi secara tertulis bahwa daftar perangkat hasil sharing ke akun Uniarch Care penerima dan live-view untuk NVR-110E2 didukung SDK.
 4. Setelah paket dan kredensial resmi tersedia, cocokkan versi/region akun, lalu buat proof-of-concept daftar perangkat shared → live P2P → output lokal ke MediaMTX.
 
+### Catatan nama aplikasi resmi
+
+Halaman Uniview App Store global saat ini menampilkan aplikasi **ArchLive (Formerly Uniarch)** untuk Android/iOS, dengan fitur akses jarak jauh ke perangkat, live/recorded video, alarm, dan berbagi cloud device. Ini adalah perubahan branding yang perlu dicatat; belum membuktikan bahwa akun atau sharing dari versi Uniarch Care 3.10.61 otomatis berpindah atau bahwa SDK pihak ketiga memberi akses yang sama.
+
 ### Jangan tertukar dengan Network Device SDK Android lama
 
 Download Center masih menampilkan **Network Device SDK_V2.7.0.1 for Android**, bertanggal 25 November 2019. Deskripsinya menyebut protokol komunikasi jaringan privat dan daftar seri NVR yang didukung (NVR201/202/204/208/301/302/304/308/316/516); daftar itu tidak mencantumkan NVR-E2 atau NVR-110E2. Ini bukan bukti kompatibilitas EZCloud App SDK dan bukan pengganti SDK P2P cloud.
