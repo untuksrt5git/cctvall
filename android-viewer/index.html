@@ -37,20 +37,19 @@ button{background:#245e61;border:0;font-weight:650;cursor:pointer}button.seconda
 <div class="status" id="status">Pilih kamera, lalu tekan Tampilkan pilihan. Disarankan mulai dari 4 kamera.</div>
 </section>
 <section class="panel" id="tuya-setup">
-<h2 style="font-size:16px;margin:0 0 6px">Smart Life / Tuya — konfigurasi ONVIF</h2>
-<div class="sub" style="margin-bottom:10px">Bagian ini membantu menyiapkan sumber RTSP untuk MediaMTX. HTML tidak dapat menemukan kamera ONVIF atau meneruskan RTSP sendiri; server MediaMTX harus berada satu jaringan LAN dengan kamera.</div>
+<h2 style="font-size:16px;margin:0 0 6px">Smart Life / Tuya — daftarkan ONVIF ke CloudCam</h2>
+<div class="sub" style="margin-bottom:10px">Isi detail kamera untuk membuat perintah Termux. Password tidak dimasukkan ke halaman atau perintah; Termux akan memintanya secara tersembunyi. Kamera dan server Android harus berada pada jaringan lokal yang sama.</div>
 <div class="controls">
 <div><label for="tuya-ip">IP kamera di jaringan lokal</label><input id="tuya-ip" placeholder="Contoh: 192.168.1.80"></div>
 <div><label for="tuya-user">Username ONVIF</label><input id="tuya-user" value="admin"></div>
-<div><label for="tuya-pass">Password ONVIF</label><input id="tuya-pass" type="password" autocomplete="off" placeholder="Password ONVIF kamera"></div>
 <div><label for="tuya-port">Port RTSP</label><input id="tuya-port" type="number" value="554"></div>
-<div><label for="tuya-path">Path RTSP dari ONVIF</label><input id="tuya-path" placeholder="Contoh: /stream1 atau /main"></div>
-<div><label for="tuya-name">Nama path MediaMTX</label><input id="tuya-name" value="tuya/kamera1"></div>
+<div><label for="tuya-path">Path RTSP dari kamera</label><input id="tuya-path" placeholder="Contoh: /stream1 atau /main"></div>
+<div><label for="tuya-name">Nama kamera CloudCam (huruf/angka/_/-)</label><input id="tuya-name" value="tuya_kamera1"></div>
 </div>
-<div class="actions"><button id="make-tuya">Buat konfigurasi MediaMTX</button><button class="secondary" id="clear-tuya">Bersihkan password</button></div>
-<label for="tuya-output" style="margin-top:10px">Potongan konfigurasi paths untuk mediamtx.yml</label>
-<textarea id="tuya-output" rows="7" readonly style="width:100%;border-radius:8px;border:1px solid var(--line);background:#0f1a21;color:#eaf2f5;padding:10px;font:12px ui-monospace,monospace" placeholder="Konfigurasi akan muncul di sini..."></textarea>
-<div class="sub" style="margin-top:8px">Setelah konfigurasi diterapkan dan MediaMTX memuat ulang, tambahkan path yang sama (misalnya tuya/kamera1) pada bagian Tambah kamera dari sumber lain di atas. Jangan kirim konfigurasi berisi password ke GitHub atau orang lain.</div>
+<div class="actions"><button id="make-tuya">Buat perintah pendaftaran</button><button class="secondary" id="clear-tuya">Bersihkan hasil</button></div>
+<label for="tuya-output" style="margin-top:10px">Perintah Termux dan path WebRTC</label>
+<textarea id="tuya-output" rows="5" readonly style="width:100%;border-radius:8px;border:1px solid var(--line);background:#0f1a21;color:#eaf2f5;padding:10px;font:12px ui-monospace,monospace" placeholder="Perintah akan muncul di sini..."></textarea>
+<div class="sub" style="margin-top:8px">Unduh helper Termux satu kali, jalankan perintah yang dibuat, lalu masukkan password ONVIF saat diminta. Setelah tersimpan, hentikan CloudCam dengan Ctrl+C dan jalankan kembali ~/bin/start-cloudcam-server. Path kameranya akan menjadi rtsp/NAMA_KAMERA, bukan tuya/kamera1.</div>
 </section>
 <section class="panel"><div id="grid" class="grid" data-cols="4"><div class="empty">Belum ada kamera ditampilkan.</div></div></section>
 </main>
@@ -62,17 +61,23 @@ const extraCameras=[];
 cameras.forEach(([id,name],i)=>{const label=document.createElement('label');label.className='cam';const cb=document.createElement('input');cb.type='checkbox';cb.value=id;cb.checked=i<4;const span=document.createElement('span');span.textContent=name;label.append(cb,span);list.append(label)});
 function selected(){return [...list.querySelectorAll('input:checked')]}
 document.getElementById('make-tuya').onclick=()=>{
- const ip=document.getElementById('tuya-ip').value.trim(),user=document.getElementById('tuya-user').value.trim(),pass=document.getElementById('tuya-pass').value,port=document.getElementById('tuya-port').value.trim()||'554',rtspPath=document.getElementById('tuya-path').value.trim(),name=document.getElementById('tuya-name').value.trim().replace(/^\/+|\/+$/g,'');
- if(!ip||!user||!pass||!rtspPath||!name){status.textContent='Lengkapi IP, username, password ONVIF, path RTSP, dan nama path.';return}
- const enc=v=>encodeURIComponent(v),source='rtsp://'+enc(user)+':'+enc(pass)+'@'+ip+':'+port+(rtspPath.startsWith('/')?rtspPath:'/'+rtspPath);
- const yaml="paths:\n  "+name+":\n    source: '"+source.replace(/'/g,"''")+"'\n    sourceOnDemand: yes";
- document.getElementById('tuya-output').value=yaml;
- status.textContent='Konfigurasi dibuat di browser. Password tidak disimpan oleh halaman; jangan membagikan hasil konfigurasi karena berisi kredensial.';
+ const ip=document.getElementById('tuya-ip').value.trim();
+ const user=document.getElementById('tuya-user').value.trim();
+ const port=document.getElementById('tuya-port').value.trim()||'554';
+ const rtspPath=document.getElementById('tuya-path').value.trim();
+ const name=document.getElementById('tuya-name').value.trim();
+ if(!ip||!user||!rtspPath||!name){status.textContent='Lengkapi IP kamera, username ONVIF, path RTSP, dan nama kamera.';return}
+ if(!/^[A-Za-z0-9_-]{1,64}$/.test(name)){status.textContent='Nama kamera hanya boleh berisi huruf, angka, _ atau - (maksimal 64 karakter).';return}
+ if(!/^[0-9]{1,5}$/.test(port)||Number(port)<1||Number(port)>65535){status.textContent='Port RTSP harus berupa angka 1-65535.';return}
+ if(/[\r\n]/.test(ip+user+rtspPath)){status.textContent='Kolom tidak boleh berisi baris baru.';return}
+ const quoteShell=v=>"'"+v.replace(/'/g,"'\\''")+"'";
+ const command="~/bin/add-rtsp-camera "+[name,ip,port,user,rtspPath].map(quoteShell).join(" ");
+ document.getElementById('tuya-output').value="Path WebRTC setelah server dimulai ulang: rtsp/"+name+"\n\nJalankan di Termux:\n"+command;
+ status.textContent='Perintah siap. Salin ke Termux; password akan diminta secara tersembunyi.';
 };
 document.getElementById('clear-tuya').onclick=()=>{
- document.getElementById('tuya-pass').value='';
  document.getElementById('tuya-output').value='';
- status.textContent='Kolom password dan hasil konfigurasi dibersihkan.';
+ status.textContent='Hasil perintah dibersihkan.';
 };
 document.getElementById('addcam').onclick=()=>{
  const name=document.getElementById('camname').value.trim();
