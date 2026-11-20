@@ -97,3 +97,25 @@ form Tambah kamera di HTML Viewer. Contoh: nama `tuya_kamera1` menghasilkan path
 - Perangkat Android TV harus tetap menyala dan tidak boleh membatasi Termux berjalan di latar belakang.
 - Mulai dengan satu kamera substream. Jangan langsung membuka banyak kamera di perangkat RAM kecil.
 - Untuk akses jarak jauh, kita akan menambahkan tunnel/VPN privat setelah tes LAN berhasil.
+
+
+## Dashboard Dinding CCTV + pendaftaran RTSP dari web
+
+Dashboard utama sekarang memakai \`android-viewer/index.html\`. Untuk fungsi pendaftaran kamera dari browser, jangan jalankan \`python -m http.server\`; gunakan server yang memiliki API:
+
+\`\`\`bash
+cd ~/cctvall/android-viewer
+~/.venvs/cctvall-cloudcam/bin/python start-dashboard-server.py --bind 0.0.0.0 --port 8090
+\`\`\`
+
+Server menampilkan kode pengelola acak di terminal. Masukkan kode tersebut di bagian **Tambah kamera Tuya / RTSP langsung dari web** pada dashboard. Kode berubah setiap server dashboard dimulai ulang dan tidak disimpan di HTML.
+
+Dari HP server buka \`http://127.0.0.1:8090\`; dari HP lain pada Wi-Fi yang sama buka \`http://IP-HP-SERVER:8090/\`. Untuk video, alamat WebRTC di Pengaturan dashboard harus memakai \`http://IP-HP-SERVER:8889\`.
+
+Form web menyimpan nama, IP lokal kamera, port RTSP, username/password ONVIF/RTSP, dan path RTSP ke penyimpanan privat CloudCam. **Setelah menyimpan kamera, hentikan CloudCam dengan Ctrl+C dan jalankan kembali \`~/bin/start-cloudcam-server\`** agar path \`rtsp/NAMA\` dimuat oleh MediaMTX.
+
+Batasan penting:
+- Form web saat ini menerima path RTSP yang sudah diketahui; ini belum melakukan pemindaian ONVIF otomatis. Browser tidak dapat mengirim WS-Discovery multicast/UDP secara langsung. Penemuan otomatis perlu modul ONVIF di sisi server.
+- Gunakan hanya pada Wi-Fi/LAN tepercaya. Form mengirim password kamera melalui HTTP lokal; jangan meneruskan port 8090 ke internet. Untuk akses jarak jauh gunakan VPN dan HTTPS.
+- Kode pengelola hanya berlaku sampai dashboard server dihentikan. Jangan membagikannya ke orang lain.
+- Dashboard default hanya memilih 4 kamera. Pilihan 9/16 tersedia tetapi lebih berat. Mulai kamera bertahap, grid memakai substream bila disediakan, dan layar penuh memakai main stream.
