@@ -58,7 +58,7 @@ binary dari sumber tidak resmi.
 ## 4. Uji dari jaringan lokal
 
 Saat `cloudcam serve` berjalan, catat alamat IP lokal Android TV dari pengaturan Wi-Fi
-atau router. CloudCam akan menampilkan alamat RTSP untuk kamera.
+atau router. CloudCam akan menampilkan alamat RTSP untuk kamera. Launcher memakai port RTP/RTCP UDP 18000/18001 (bukan default 8000/8001) untuk menghindari benturan port di Android. Port ini dapat diubah sebelum menjalankan launcher dengan `CCTV_RTP_PORT=19000 ~/bin/start-cloudcam-server`.
 
 Format umumnya:
 
