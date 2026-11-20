@@ -264,7 +264,7 @@ class MainActivity : Activity() {
             }
             val label = TextView(this).apply {
                 val source = if (camera.isCloud) "HIK-CONNECT" else "RTSP / LOKAL"
-                val detail = if (camera.isCloud) "Stream cloud tersambung melalui bridge" else camera.url
+                val detail = if (camera.isCloud) "Tekan Buka untuk melihat video langsung" else camera.url
                 text = "[$source] " + camera.name + "\n" + detail
                 textSize = 13f
                 setTextColor(0xFFFFFFFF.toInt())
