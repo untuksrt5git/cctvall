@@ -39,6 +39,7 @@ dependencies {
 chaquopy {
     defaultConfig {
         version = "3.10"
+        buildPython("python3.10")
         pip {
             install("numpy==1.26.2")
             install("requests")
