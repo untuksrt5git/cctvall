@@ -1,8 +1,8 @@
 # CCTV All-in-One
 
-Aplikasi Android CCTV untuk HP dan Android TV Box. Versi uji modern v0.3.1 menggunakan minimum Android 6.0 (API 23) dan target Android 14 (API 34).
+Aplikasi Android CCTV untuk HP dan Android TV Box. Versi uji modern v0.4.0 menggunakan minimum Android 6.0 (API 23) dan target Android 14 (API 34).
 
-## Menu aplikasi
+## Runtime CloudCam Android (beta)\n\nBuild v0.4.0 menyertakan Python 3.10 tertanam via Chaquopy 15.0.1 untuk ARMv7 dan ARM64. Runtime ini memanggil paket CloudCam upstream langsung untuk login Hik-Connect dan mengambil daftar kamera tanpa PC. Kata sandi tidak disimpan oleh aplikasi.\n\n**Batas tahap ini:** live view CloudCam langsung di APK belum aktif. Jalur stream upstream memakai subprocess untuk menjalankan proxy Python dan FFmpeg, sedangkan runtime Python tertanam Android tidak menyediakan proses Python eksternal. Gunakan Cloud Bridge untuk menonton video sampai jalur native Android selesai.\n\n## Menu aplikasi
 
 - **Tambah Kamera** — menambahkan alamat RTSP secara manual.
 - **ONVIF** — menu disiapkan; penemuan otomatis dan pengambilan profil RTSP belum selesai.
@@ -15,7 +15,7 @@ Tombol Login Web Hik-Connect membuka portal akun yang benar, bukan portal pengem
 
 Login web **tidak otomatis memberikan sesi cloud atau stream video kepada pemutar CCTV All-in-One**. Jalur live view Hik-Connect yang sekarang diaktifkan memakai CloudCam Bridge pada PC/server: CloudCam mengambil stream cloud dan MediaMTX menyediakan RTSP, lalu APK memutarnya. APK belum menjalankan mesin Python CloudCam langsung di Android; karena itu PC/server tetap diperlukan untuk jalur ini. Dukungan perangkat yang hanya dibagikan kepada akun penerima tetap bergantung pada akses CloudCam dan kode verifikasi perangkat.
 
-## Status fitur v0.3.1
+## Status fitur v0.4.0
 
 | Fitur | Status |
 |---|---|
@@ -23,7 +23,7 @@ Login web **tidak otomatis memberikan sesi cloud atau stream video kepada pemuta
 | Pemutar satu kamera RTSP | Tersedia |
 | Empat menu utama | Tersedia |
 | Portal web Hik-Connect di dalam aplikasi | Ditambahkan pada v0.3.0 |
-| Hik-Connect live view melalui CloudCam Bridge + RTSP player | Ditambahkan pada v0.3.1; perlu diuji dengan akun/kamera Anda |
+| Hik-Connect login + daftar kamera dari CloudCam langsung di Android | Beta v0.4.0; perlu diuji dengan akun Anda |\n| Hik-Connect live view melalui CloudCam Bridge + RTSP player | Tersedia sebagai jalur pendamping; perlu diuji pada perangkat Anda |
 | Hik-Connect cloud live view langsung di APK tanpa server | Belum |
 | Integrasi Uniarch Care / EZCloud App SDK | Menunggu paket SDK dan akses integrasi resmi |
 | Pencarian ONVIF otomatis | Belum |
@@ -54,3 +54,4 @@ Paket CloudCam tetap dijalankan di PC/server. Pastikan `CLOUDCAM_STREAM_HOST` di
 ## Integrasi Uniarch / EZCloud
 
 Halaman publik resmi Uniview mengonfirmasi tersedianya App SDK untuk P2P STUN/TURN, live video latensi rendah, playback, audio dua arah, snapshot, serta API manajemen perangkat/PTZ. Namun, halaman tersebut tidak menyediakan paket SDK Android atau kredensial integrasi yang dapat langsung dipasang dari repositori publik. Modul Uniarch belum diklaim aktif sampai SDK resmi dan akses akun integrasi tersedia. Lihat [catatan integrasi Uniarch](docs/uniarch-integration.md).
+\n## Lisensi CloudCam\n\nSumber Python CloudCam diambil dari repositori upstream pada commit `3d2f057ae138ef7320258caf2a8d3764b5e8114f` saat build. File LICENSE dan NOTICE ikut disertakan dalam APK.\n
