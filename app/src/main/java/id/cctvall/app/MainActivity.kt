@@ -126,9 +126,10 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(20, 8, 20, 0)
         }
-        val email = EditText(this).apply {
-            hint = "Email akun Hik-Connect"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+        val account = EditText(this).apply {
+            hint = "Username / User ID / Email Hik-Connect"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_NORMAL
+            singleLine = true
         }
         val password = EditText(this).apply {
             hint = "Kata sandi Hik-Connect"
@@ -138,7 +139,7 @@ class MainActivity : Activity() {
             text = "Akun dipakai langsung oleh CloudCam di perangkat ini. Kata sandi tidak disimpan oleh aplikasi."
             setTextColor(0xFFE0E6EA.toInt())
         })
-        panel.addView(email)
+        panel.addView(account)
         panel.addView(password)
 
         val dialog = AlertDialog.Builder(this)
@@ -149,10 +150,10 @@ class MainActivity : Activity() {
             .create()
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val user = email.text.toString().trim()
+                val user = account.text.toString().trim()
                 val pass = password.text.toString()
-                if (!user.contains("@") || pass.isBlank()) {
-                    Toast.makeText(this, "Isi email dan kata sandi akun Hik-Connect.", Toast.LENGTH_LONG).show()
+                if (user.isBlank() || pass.isBlank()) {
+                    Toast.makeText(this, "Isi username, user ID, atau email beserta kata sandi Hik-Connect.", Toast.LENGTH_LONG).show()
                     return@setOnClickListener
                 }
                 dialog.dismiss()
@@ -163,7 +164,7 @@ class MainActivity : Activity() {
         dialog.show()
     }
 
-    private fun connectHikCloudCamDirect(email: String, password: String) {
+    private fun connectHikCloudCamDirect(account: String, password: String) {
         val progress = ProgressBar(this).apply { isIndeterminate = true }
         val status = TextView(this).apply {
             text = "Menyiapkan Python CloudCam..."
@@ -196,7 +197,7 @@ class MainActivity : Activity() {
                 status.post { status.text = "Python " + runtime.optString("python") + " siap; login Hik-Connect..." }
                 val json = module.callAttr(
                     "login_and_list",
-                    email,
+                    account,
                     password,
                     "hikconnect",
                     filesDir.absolutePath + "/cloudcam-runtime"
