@@ -68,3 +68,10 @@ Belum ada SDK/AAR atau kredensial developer resmi di repo. Karena itu belum ada 
 ## Data yang aman untuk dikirim saat meminta SDK ke vendor
 
 Sebutkan model NVR-110E2, aplikasi Uniarch Care 3.10.61 (Build20251205), Android, dan kebutuhan integrasi live view untuk akun yang menerima device sharing. Jangan sertakan password, token, QR code, atau serial number di issue publik.
+
+
+## Catatan penting hasil pemeriksaan Download Center
+
+Uniview juga mempublikasikan **Network Device SDK_V2.7.0.1 for Android** (2019), tetapi ini berbeda dari EZCloud App SDK. Deskripsinya menyebut komunikasi protokol jaringan privat dan daftar model NVR yang didukung tidak mencantumkan NVR-110E2. Karena itu SDK ini tidak boleh dianggap sebagai solusi cloud P2P untuk perangkat shared pengguna. Detail: https://www.uniview.com/Support/Download_Center/SDK/201911/859100_168459_0.htm
+
+Jadi Jalur A tetap membutuhkan paket EZCloud App SDK yang benar, bukan sekadar mengunduh Network Device SDK Android yang tersedia publik.
