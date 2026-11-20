@@ -25,3 +25,15 @@ Menu Uniarch sekarang membuka [Cloud Open Platform](https://cloud.uniview.com/ma
 ## Catatan sumber
 
 Semua kemampuan produk di atas diambil dari halaman dukungan resmi Uniarch/Uniview yang tertaut pada bagian atas. Fitur bisa berbeda menurut model perangkat, region cloud, dan versi software.
+
+## Pembaruan 20 November 2026: Unisee
+
+Uniview kini memperkenalkan [Unisee Developer Platform](https://global-open.uniview.com/) sebagai portal dokumentasi, API & SDK, UAOP, partner integration, dan support. Pengumuman resmi bertanggal 30 Desember 2025 menyebut dokumentasi API/SDK disusun per product line serta referensi protokol standar seperti ONVIF; pendaftaran diperlukan untuk membuka resource penuh. Ini adalah jalur resmi baru yang perlu diperiksa untuk memperoleh SDK P2P cloud yang sesuai.
+
+Halaman [EZCloud Platform](https://global.uniview.com/Topics/EZCloud_Platform/) mencantumkan kemampuan App SDK: P2P STUN/TURN, low-latency live video, playback, audio dua arah, snapshot/recording. Belum ada bukti publik yang memastikan perangkat shared ke akun penerima dapat dibuka oleh SDK tersebut.
+
+Download Center juga menampilkan Network Device SDK Android V2.7.0.1 (25 November 2019), tetapi itu SDK protokol jaringan privat dan daftar kompatibilitas NVR-nya tidak mencantumkan seri NVR-E2/NVR-110E2. Jangan menyamakannya dengan App SDK EZCloud.
+
+NVR-110E2 datasheet resmi: 10 kanal, P2P/UPnP/DHCP, outgoing bandwidth 32 Mbps. Karena perangkat berada di jaringan lain dan akses pengguna berasal dari sharing cloud, jalur lokal RTSP/ONVIF belum tersedia kecuali pemilik mengizinkan akses jaringan lokal/remote secara resmi.
+
+Langkah berikut: registrasi Unisee, cari EZCloud/Uniarch Android App SDK, lalu minta konfirmasi dukungan shared-device recipient dan NVR-110E2 sebelum menulis adapter. Rincian dan template permintaan ada di [uniarch-dual-track.md](uniarch-dual-track.md).
