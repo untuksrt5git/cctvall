@@ -27,7 +27,8 @@ ffmpeg -version | head -n 1
 
 mkdir -p "$HOME/bin"
 cp "$(dirname "$0")/start-cloudcam-server.sh" "$HOME/bin/start-cloudcam-server"
-chmod 700 "$HOME/bin/start-cloudcam-server"
+cp "$(dirname "$0")/add-rtsp-camera.sh" "$HOME/bin/add-rtsp-camera"
+chmod 700 "$HOME/bin/start-cloudcam-server" "$HOME/bin/add-rtsp-camera"
 
 echo
 echo "PERSIAPAN SELESAI."
