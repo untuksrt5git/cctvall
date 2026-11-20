@@ -97,6 +97,9 @@ def camera_payload() -> dict:
             "rtsp_url": (
                 f"rtsp://{safe_user}:{safe_password}@{STREAM_HOST}:8554/{stream_path}"
             ),
+            "hls_url": (
+                f"http://{safe_user}:{safe_password}@{STREAM_HOST}:8888/{stream_path}/index.m3u8"
+            ),
         })
 
     if items:
