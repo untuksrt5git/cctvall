@@ -16,6 +16,10 @@ import org.json.JSONObject
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.ui.PlayerView
+import com.google.android.exoplayer2.Player
+import com.google.android.exoplayer2.PlaybackException
+import com.google.android.exoplayer2.source.rtsp.RtspMediaSource
+import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 
 data class CameraEntry(val name: String, val url: String, val isCloud: Boolean = false)
 
@@ -289,19 +293,96 @@ class MainActivity : Activity() {
     }
 
     private fun playCamera(camera: CameraEntry) {
-        val view = PlayerView(this)
-        val p = ExoPlayer.Builder(this).build()
+        if (!camera.url.startsWith("rtsp://", ignoreCase = true) &&
+            !camera.url.startsWith("rtsps://", ignoreCase = true)) {
+            Toast.makeText(this, "Alamat video kamera tidak tersedia.", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(8, 4, 8, 8)
+            setBackgroundColor(0xFF101820.toInt())
+        }
+        val status = TextView(this).apply {
+            text = "Menghubungkan ke kamera..."
+            textSize = 13f
+            setTextColor(0xFFE0E6EA.toInt())
+            setPadding(8, 8, 8, 8)
+        }
+        val view = PlayerView(this).apply {
+            useController = true
+            controllerAutoShow = true
+            setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
+            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+            keepScreenOn = true
+        }
+        panel.addView(status, LinearLayout.LayoutParams(-1, -2))
+        panel.addView(view, LinearLayout.LayoutParams(-1, 0, 1f))
+
+        val retry = Button(this).apply {
+            text = "Coba Sambungkan Lagi"
+            isAllCaps = false
+        }
+        panel.addView(retry, LinearLayout.LayoutParams(-1, -2))
+
         player?.release()
+        val p = ExoPlayer.Builder(this).build()
         player = p
         view.player = p
-        p.setMediaItem(MediaItem.fromUri(camera.url))
-        p.prepare()
-        p.playWhenReady = true
-        AlertDialog.Builder(this).setTitle(camera.name).setView(view)
-            .setPositiveButton("Tutup") { _, _ -> p.pause(); p.release(); if (player === p) player = null }
-            .setOnCancelListener { p.pause(); p.release(); if (player === p) player = null }
-            .show().window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,
-                (resources.displayMetrics.heightPixels * 0.72).toInt())
+
+        val mediaItem = MediaItem.fromUri(Uri.parse(camera.url))
+        val rtspFactory = RtspMediaSource.Factory()
+            .setForceUseRtpTcp(true)
+            .setTimeoutMs(25_000)
+
+        fun startStream() {
+            status.text = "Menghubungkan ke Hik-Connect... video pertama bisa memerlukan beberapa detik."
+            p.stop()
+            p.setMediaSource(rtspFactory.createMediaSource(mediaItem))
+            p.prepare()
+            p.playWhenReady = true
+        }
+
+        p.addListener(object : Player.Listener {
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                status.text = when (playbackState) {
+                    Player.STATE_BUFFERING -> "Mengambil video dari cloud..."
+                    Player.STATE_READY -> "LIVE — video kamera tersambung"
+                    Player.STATE_ENDED -> "Stream berakhir. Tekan Coba Sambungkan Lagi."
+                    else -> "Menunggu koneksi kamera..."
+                }
+            }
+
+            override fun onPlayerError(error: PlaybackException) {
+                status.text = "Tidak dapat memutar video (${error.errorCodeName}). Periksa koneksi bridge, port RTSP 8554, dan dukungan codec kamera."
+                Toast.makeText(
+                    this@MainActivity,
+                    "Video gagal dibuka: " + error.errorCodeName,
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        })
+
+        retry.setOnClickListener { startStream() }
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(camera.name)
+            .setView(panel)
+            .setNegativeButton("Tutup", null)
+            .create()
+        dialog.setOnDismissListener {
+            if (player === p) player = null
+            p.release()
+        }
+        dialog.setOnShowListener {
+            dialog.window?.setLayout(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                (resources.displayMetrics.heightPixels * 0.86).toInt()
+            )
+        }
+        dialog.show()
+        startStream()
     }
 
     private fun saveCameras() {
