@@ -62,7 +62,7 @@ const extraCameras=[];
 cameras.forEach(([id,name],i)=>{const label=document.createElement('label');label.className='cam';const cb=document.createElement('input');cb.type='checkbox';cb.value=id;cb.checked=i<4;const span=document.createElement('span');span.textContent=name;label.append(cb,span);list.append(label)});
 function selected(){return [...list.querySelectorAll('input:checked')]}
 document.getElementById('make-tuya').onclick=()=>{
- const ip=document.getElementById('tuya-ip').value.trim(),user=document.getElementById('tuya-user').value.trim(),pass=document.getElementById('tuya-pass').value,port=document.getElementById('tuya-port').value.trim()||'554',rtspPath=document.getElementById('tuya-path').value.trim(),name=document.getElementById('tuya-name').value.trim().replace(/^\\/+|\\/+$/g,'');
+ const ip=document.getElementById('tuya-ip').value.trim(),user=document.getElementById('tuya-user').value.trim(),pass=document.getElementById('tuya-pass').value,port=document.getElementById('tuya-port').value.trim()||'554',rtspPath=document.getElementById('tuya-path').value.trim(),name=document.getElementById('tuya-name').value.trim().replace(/^\/+|\/+$/g,'');
  if(!ip||!user||!pass||!rtspPath||!name){status.textContent='Lengkapi IP, username, password ONVIF, path RTSP, dan nama path.';return}
  const enc=v=>encodeURIComponent(v),source='rtsp://'+enc(user)+':'+enc(pass)+'@'+ip+':'+port+(rtspPath.startsWith('/')?rtspPath:'/'+rtspPath);
  const yaml="paths:\n  "+name+":\n    source: '"+source.replace(/'/g,"''")+"'\n    sourceOnDemand: yes";
@@ -74,7 +74,26 @@ document.getElementById('clear-tuya').onclick=()=>{
  document.getElementById('tuya-output').value='';
  status.textContent='Kolom password dan hasil konfigurasi dibersihkan.';
 };
-document.getElementById('addcam').onclick=()=>{const name=document.getElementById('camname').value.trim(),path=document.getElementById('campath').value.trim().replace(/^\\/+|\\/+$/g,''),provider=document.getElementById('provider').value;if(!name||!path){status.textContent='Isi nama kamera dan path WebRTC MediaMTX.';return}if(cameras.some(x=>x[0]===path)||extraCameras.some(x=>x.id===path)){status.textContent='Path tersebut sudah ada.';return}extraCameras.push({id:path,name,provider});const label=document.createElement('label');label.className='cam';const cb=document.createElement('input');cb.type='checkbox';cb.value=path;cb.checked=true;const span=document.createElement('span');span.textContent=provider+' • '+name;label.append(cb,span);list.append(label);status.textContent='Kamera masuk daftar viewer. Pastikan path sudah disediakan MediaMTX.'};
+document.getElementById('addcam').onclick=()=>{
+ const name=document.getElementById('camname').value.trim();
+ const path=document.getElementById('campath').value.trim().replace(/^\/+|\/+$/g,'');
+ const provider=document.getElementById('provider').value;
+ if(!name||!path){status.textContent='Isi nama kamera dan path WebRTC MediaMTX.';return}
+ if(cameras.some(x=>x[0]===path)||extraCameras.some(x=>x.id===path)){status.textContent='Path tersebut sudah ada.';return}
+ extraCameras.push({id:path,name,provider});
+ const label=document.createElement('label');label.className='cam';
+ const cb=document.createElement('input');cb.type='checkbox';cb.value=path;cb.checked=true;
+ const span=document.createElement('span');span.textContent=provider+' • '+name;
+ label.append(cb,span);list.append(label);
+ const count=selected().length,layout=document.getElementById('layout'),current=Number(layout.value);
+ if(count>current){
+   const next=[1,4,9,16].find(n=>n>=count);
+   if(next)layout.value=String(next);
+ }
+ document.getElementById('camname').value='';
+ document.getElementById('campath').value='';
+ status.textContent='Kamera ditambahkan dan dipilih. Tekan Tampilkan pilihan. Pastikan path sudah aktif di MediaMTX.';
+};
 document.getElementById('all').onclick=()=>{list.querySelectorAll('input').forEach(x=>x.checked=true);status.textContent='Semua 25 kamera dipilih. Grid tetap membatasi jumlah yang ditampilkan.'};
 document.getElementById('clear').onclick=()=>{list.querySelectorAll('input').forEach(x=>x.checked=false);grid.innerHTML='<div class="empty">Pilihan dihapus.</div>'};
 document.getElementById('show').onclick=()=>{
@@ -83,7 +102,7 @@ document.getElementById('show').onclick=()=>{
  if(!host){status.textContent='Masukkan alamat server terlebih dahulu.';return}
  const chosen=selected().slice(0,limit);if(!chosen.length){status.textContent='Pilih minimal satu kamera.';return}
  grid.replaceChildren();grid.dataset.cols=String(limit);
- chosen.forEach(cb=>{const cam=cameras.find(x=>x[0]===cb.value)||extraCameras.find(x=>x.id===cb.value);const tile=document.createElement('article');tile.className='tile';const head=document.createElement('div');head.className='tilehead';const title=document.createElement('span');title.textContent=cam.name||cam[1];const id=document.createElement('span');id.textContent=cam.id||cam[0];head.append(title,id);const frame=document.createElement('iframe');frame.allow='autoplay; fullscreen; picture-in-picture';frame.loading='lazy';let path=cam.id?'/'+cam.id:'/cam/'+cam[0];if(document.getElementById('stream').value==='sub')path+='/sub';frame.src='http://'+host+':'+port+path;tile.append(head,frame);grid.append(tile)});
+ chosen.forEach(cb=>{const cam=cameras.find(x=>x[0]===cb.value)||extraCameras.find(x=>x.id===cb.value);const tile=document.createElement('article');tile.className='tile';const head=document.createElement('div');head.className='tilehead';const title=document.createElement('span');title.textContent=cam.name||cam[1];const id=document.createElement('span');id.textContent=cam.id||cam[0];head.append(title,id);const frame=document.createElement('iframe');frame.allow='autoplay; fullscreen; picture-in-picture';frame.loading='lazy';let path=cam.id?'/'+cam.id:'/cam/'+cam[0];if(document.getElementById('stream').value==='sub'&&!cam.id)path+='/sub';frame.src='http://'+host+':'+port+path;tile.append(head,frame);grid.append(tile)});
  status.textContent='Menampilkan '+chosen.length+' kamera. HP portrait memakai satu kolom; layar lebar memakai grid otomatis. Path kamera tambahan harus sudah aktif di MediaMTX.';
 };
 document.getElementById('full').onclick=()=>{if(grid.requestFullscreen)grid.requestFullscreen();else status.textContent='Layar penuh tidak didukung browser ini.'};
