@@ -9,14 +9,19 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
+import org.json.JSONObject
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.ui.PlayerView
 
-data class CameraEntry(val name: String, val url: String)
+data class CameraEntry(val name: String, val url: String, val isCloud: Boolean = false)
 
 class MainActivity : Activity() {
     private val cameras = mutableListOf<CameraEntry>()
+    private val cloudCameras = mutableListOf<CameraEntry>()
     private lateinit var list: LinearLayout
     private lateinit var empty: TextView
     private var player: ExoPlayer? = null
@@ -92,17 +97,106 @@ class MainActivity : Activity() {
     }
 
     private fun showHikConnectInfo() {
+        val prefs = getSharedPreferences("hik_bridge", MODE_PRIVATE)
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(20, 8, 20, 0)
+        }
+        val bridgeUrl = EditText(this).apply {
+            hint = "http://192.168.1.20:8765"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_URI
+            setText(prefs.getString("url", ""))
+        }
+        val token = EditText(this).apply {
+            hint = "Token bridge (CLOUDCAM_BRIDGE_TOKEN)"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        panel.addView(TextView(this).apply {
+            text = "Alamat PC/server yang menjalankan Hik-Connect Cloud Bridge:"
+            setTextColor(0xFFE0E6EA.toInt())
+        })
+        panel.addView(bridgeUrl)
+        panel.addView(TextView(this).apply {
+            text = "Token akses bridge:"
+            setTextColor(0xFFE0E6EA.toInt())
+        })
+        panel.addView(token)
+
         AlertDialog.Builder(this)
-            .setTitle("Hubungkan Hik-Connect")
-            .setMessage("Status: BELUM TERSAMBUNG. Integrasi resmi memakai Hik-Connect OpenAPI dan API key yang harus diajukan ke Hikvision melalui Technology Partner Portal. Karena akun Anda hanya menerima perangkat yang dibagikan, dukungan daftar dan streaming perangkat share harus dipastikan bersama Hikvision sebelum integrasi diaktifkan. Jangan masukkan kata sandi Hik-Connect di layar ini.")
-            .setPositiveButton("Buka Portal TPP") { _, _ ->
-                openOfficialPage("https://tpp.hikvision.com/")
+            .setTitle("Sambungkan Hik-Connect")
+            .setView(panel)
+            .setNegativeButton("Batal", null)
+            .setNeutralButton("Panduan bridge") { _, _ ->
+                openOfficialPage("https://github.com/untuksrt5git/cctvall/tree/main/hikconnect-bridge")
             }
-            .setNegativeButton("Panduan Hik-Connect API") { _, _ ->
-                openOfficialPage("https://tpp.hikvision.com/products/HC-Integration")
+            .setPositiveButton("Sambungkan") { _, _ ->
+                val address = bridgeUrl.text.toString().trim().trimEnd('/')
+                val accessToken = token.text.toString().trim()
+                if ((!address.startsWith("http://") && !address.startsWith("https://")) || accessToken.length < 24) {
+                    Toast.makeText(this, "Isi alamat bridge dan token yang benar.", Toast.LENGTH_LONG).show()
+                } else {
+                    connectHikBridge(address, accessToken)
+                }
             }
-            .setNeutralButton("Tutup", null)
             .show()
+    }
+
+    private fun connectHikBridge(address: String, accessToken: String) {
+        Toast.makeText(this, "Menghubungkan ke Hik-Connect Cloud Bridge...", Toast.LENGTH_SHORT).show()
+        Thread {
+            var connection: HttpURLConnection? = null
+            try {
+                connection = (URL("$address/v1/cameras").openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    connectTimeout = 12000
+                    readTimeout = 45000
+                    setRequestProperty("X-Bridge-Token", accessToken)
+                }
+                val status = connection.responseCode
+                val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+                val response = stream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+                if (status !in 200..299) {
+                    val reason = runCatching { JSONObject(response).optString("error") }.getOrDefault("HTTP $status")
+                    throw IOException("$reason (HTTP $status)")
+                }
+
+                val root = JSONObject(response)
+                val items = root.optJSONArray("cameras")
+                val loaded = mutableListOf<CameraEntry>()
+                if (items != null) {
+                    for (i in 0 until items.length()) {
+                        val item = items.optJSONObject(i) ?: continue
+                        val name = item.optString("name", "Kamera Hik-Connect")
+                        val rtsp = item.optString("rtsp_url", "")
+                        if (rtsp.startsWith("rtsp://") || rtsp.startsWith("rtsps://")) {
+                            loaded.add(CameraEntry(name, rtsp, true))
+                        }
+                    }
+                }
+
+                runOnUiThread {
+                    cloudCameras.clear()
+                    cloudCameras.addAll(loaded)
+                    prefsSaveBridgeUrl(address)
+                    renderCameras()
+                    if (loaded.isEmpty()) {
+                        Toast.makeText(this, "Bridge tersambung, tetapi belum ada kamera yang dikembalikan akun. Periksa dukungan perangkat share dan kode verifikasi.", Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(this, "Berhasil memuat " + loaded.size + " kamera Hik-Connect.", Toast.LENGTH_LONG).show()
+                    }
+                }
+            } catch (error: Exception) {
+                runOnUiThread {
+                    Toast.makeText(this, "Gagal menyambungkan: " + (error.message ?: "periksa alamat bridge dan token"), Toast.LENGTH_LONG).show()
+                }
+            } finally {
+                connection?.disconnect()
+            }
+        }.start()
+    }
+
+    private fun prefsSaveBridgeUrl(address: String) {
+        getSharedPreferences("hik_bridge", MODE_PRIVATE).edit().putString("url", address).apply()
     }
 
     private fun openOfficialPage(url: String) {
@@ -142,16 +236,18 @@ class MainActivity : Activity() {
 
     private fun renderCameras() {
         list.removeAllViews()
-        empty.visibility = if (cameras.isEmpty()) View.VISIBLE else View.GONE
-        cameras.forEachIndexed { index, camera ->
+        empty.visibility = if (cameras.isEmpty() && cloudCameras.isEmpty()) View.VISIBLE else View.GONE
+        val allCameras = cameras + cloudCameras
+        allCameras.forEach { camera ->
             val row = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
                 setPadding(8, 4, 8, 4)
             }
             val label = TextView(this).apply {
-                text = camera.name + "\n" + camera.url
-                textSize = 14f
+                val source = if (camera.isCloud) "HIK-CONNECT" else "RTSP / LOKAL"
+                text = "[$source] " + camera.name + "\n" + camera.url
+                textSize = 13f
                 setTextColor(0xFFFFFFFF.toInt())
             }
             row.addView(label, LinearLayout.LayoutParams(0, -2, 1f))
@@ -160,10 +256,14 @@ class MainActivity : Activity() {
                 setOnClickListener { playCamera(camera) }
             })
             row.addView(Button(this).apply {
-                text = "Hapus"
+                text = if (camera.isCloud) "Lepas" else "Hapus"
                 setOnClickListener {
-                    cameras.removeAt(index)
-                    saveCameras()
+                    if (camera.isCloud) {
+                        cloudCameras.remove(camera)
+                    } else {
+                        cameras.remove(camera)
+                        saveCameras()
+                    }
                     renderCameras()
                 }
             })
