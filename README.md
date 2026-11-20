@@ -69,3 +69,7 @@ Sumber Python CloudCam diambil dari repositori upstream pada commit `3d2f057ae13
 ### Hik-Connect account identifier
 
 The CloudCam Android login field accepts a Hik-Connect username, user ID, or email. Upstream CloudCam calls the setting `email` internally for compatibility, but its Hik-Connect API request sends the value as `account`; no email-format validation should be applied by the Android UI.
+
+## Android TV CloudCam Server (eksperimental)
+
+Panduan menjalankan CloudCam langsung di Android TV 10/11 melalui Termux (tanpa PC Windows): [android-tv/README.md](android-tv/README.md). Tahap pertama menguji server RTSP di jaringan lokal; akses internet jarak jauh dan autostart dibuat setelah uji perangkat berhasil.
