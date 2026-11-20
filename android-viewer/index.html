@@ -46,7 +46,7 @@ textarea{min-height:260px;font-family:ui-monospace,Menlo,Consolas,monospace;font
 <body>
 <header><h1>Dinding CCTV</h1><div class="bar">
 <label for="limit" style="margin:0;font-weight:400">Jumlah tampil</label>
-<select id="limit"><option value="1">1 kamera</option><option value="4" selected>4 kamera</option><option value="9">9 kamera</option><option value="16">16 kamera</option></select>
+<select id="limit"><option value="1">1 kamera</option><option value="4" selected>4 kamera</option><option value="9">9 kamera (lebih berat)</option><option value="16">16 kamera (berat)</option></select>
 <button id="startAll" class="primary">Mulai yang tampil</button><button id="stopAll">Jeda semua</button><button id="cfgBtn">Pengaturan</button>
 </div></header>
 <main>
@@ -321,13 +321,14 @@ document.getElementById("startAll").addEventListener("click", () => {
   startTimers.forEach(clearTimeout);
   startTimers = [];
   const tiles = [...wall.querySelectorAll(".tile")];
+  if (tiles.length > 4 && !window.confirm("Anda akan menjalankan " + tiles.length + " stream sekaligus. Ini dapat membebani HP dan jaringan. Lanjutkan?")) return;
   tiles.forEach((tile, index) => {
     startTimers.push(window.setTimeout(() => {
       const cam = cameras[Number(tile.dataset.index)];
       if (cam) start(tile, cam);
-    }, index * 1100));
+    }, index * 2500));
   });
-  statusEl.textContent = "Memulai hanya " + tiles.length + " kamera yang sedang ditampilkan.";
+  statusEl.textContent = "Memulai hanya " + tiles.length + " kamera yang sedang ditampilkan, satu per satu dengan jeda 2,5 detik.";
 });
 document.getElementById("stopAll").addEventListener("click", () => {
   startTimers.forEach(clearTimeout);
