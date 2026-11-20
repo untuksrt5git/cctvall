@@ -23,45 +23,49 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(18, 18, 18, 18)
+            setPadding(16, 14, 16, 12)
             setBackgroundColor(0xFF101820.toInt())
         }
-        val title = TextView(this).apply {
-            text = "CCTV ALL-IN-ONE"
-            textSize = 23f
-            setTextColor(0xFFFFFFFF.toInt())
-            gravity = Gravity.CENTER_VERTICAL
+
+        val actions = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
         }
-        root.addView(title, LinearLayout.LayoutParams(-1, 54))
-        val subtitle = TextView(this).apply {
-            text = "Dashboard kamera • RTSP / ONVIF"
-            textSize = 14f
-            setTextColor(0xFFB8C7D1.toInt())
+        val add = Button(this).apply {
+            text = "+ Tambah Kamera"
+            textSize = 15f
+            setOnClickListener { showAddCamera() }
         }
-        root.addView(subtitle)
-        val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val add = Button(this).apply { text = "+ Tambah kamera"; setOnClickListener { showAddCamera() } }
-        val discover = Button(this).apply { text = "Cari ONVIF"; setOnClickListener {
-            AlertDialog.Builder(this@MainActivity)
-                .setTitle("Pencarian ONVIF")
-                .setMessage("Pencarian otomatis jaringan lokal akan ditambahkan pada tahap berikutnya. Untuk sementara, tambahkan alamat RTSP kamera secara manual.")
-                .setPositiveButton("Mengerti", null).show()
-        } }
-        actions.addView(add, LinearLayout.LayoutParams(0, -2, 1f))
-        actions.addView(discover, LinearLayout.LayoutParams(0, -2, 1f))
-        root.addView(actions)
+        val discover = Button(this).apply {
+            text = "ONVIF"
+            textSize = 15f
+            setOnClickListener { showOnvifInfo() }
+        }
+        actions.addView(add, LinearLayout.LayoutParams(0, 58, 1f).apply { rightMargin = 6 })
+        actions.addView(discover, LinearLayout.LayoutParams(0, 58, 1f).apply { leftMargin = 6 })
+        root.addView(actions, LinearLayout.LayoutParams(-1, -2))
+
         empty = TextView(this).apply {
-            text = "Belum ada kamera. Tekan “Tambah kamera” untuk memasukkan URL RTSP."
-            textSize = 16f
+            text = "Belum ada kamera.\nPilih Tambah Kamera untuk memasukkan alamat RTSP."
+            textSize = 15f
             setTextColor(0xFFE0E6EA.toInt())
             gravity = Gravity.CENTER
-            setPadding(12, 35, 12, 35)
+            setPadding(12, 30, 12, 30)
         }
-        root.addView(empty)
+        root.addView(empty, LinearLayout.LayoutParams(-1, -2))
+
         list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         root.addView(list, LinearLayout.LayoutParams(-1, 0, 1f))
         setContentView(root)
         loadCameras()
+    }
+
+    private fun showOnvifInfo() {
+        AlertDialog.Builder(this)
+            .setTitle("ONVIF")
+            .setMessage("Pencarian kamera ONVIF otomatis di jaringan lokal sedang disiapkan. Pastikan ponsel/TV Box dan kamera berada pada jaringan yang sama. Untuk sementara, kamera dapat ditambahkan melalui alamat RTSP.")
+            .setPositiveButton("OK", null)
+            .show()
     }
 
     private fun showAddCamera() {
@@ -76,7 +80,7 @@ class MainActivity : Activity() {
         }
         panel.addView(name)
         panel.addView(url)
-        AlertDialog.Builder(this).setTitle("Tambah kamera RTSP").setView(panel)
+        AlertDialog.Builder(this).setTitle("Tambah Kamera").setView(panel)
             .setNegativeButton("Batal", null)
             .setPositiveButton("Simpan") { _, _ ->
                 val n = name.text.toString().trim().ifEmpty { "Kamera ${cameras.size + 1}" }
@@ -119,8 +123,8 @@ class MainActivity : Activity() {
                 }
             })
             list.addView(row, ViewGroup.LayoutParams(-1, -2))
-            val line = View(this).apply { setBackgroundColor(0xFF34434D.toInt()) }
-            list.addView(line, LinearLayout.LayoutParams(-1, 1))
+            list.addView(View(this).apply { setBackgroundColor(0xFF34434D.toInt()) },
+                LinearLayout.LayoutParams(-1, 1))
         }
     }
 
@@ -136,11 +140,14 @@ class MainActivity : Activity() {
         AlertDialog.Builder(this).setTitle(camera.name).setView(view)
             .setPositiveButton("Tutup") { _, _ -> p.pause(); p.release(); if (player === p) player = null }
             .setOnCancelListener { p.pause(); p.release(); if (player === p) player = null }
-            .show().window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, (resources.displayMetrics.heightPixels * 0.72).toInt())
+            .show().window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,
+                (resources.displayMetrics.heightPixels * 0.72).toInt())
     }
 
     private fun saveCameras() {
-        val encoded = cameras.joinToString("\n") { android.util.Base64.encodeToString((it.name + "\u0000" + it.url).toByteArray(), android.util.Base64.NO_WRAP) }
+        val encoded = cameras.joinToString("\n") {
+            android.util.Base64.encodeToString((it.name + "\u0000" + it.url).toByteArray(), android.util.Base64.NO_WRAP)
+        }
         getSharedPreferences("camera_list", MODE_PRIVATE).edit().putString("items", encoded).apply()
     }
 
