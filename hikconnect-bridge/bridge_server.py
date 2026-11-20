@@ -8,8 +8,10 @@ import logging
 import os
 import re
 import signal
+import socket
 import subprocess
 import sys
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import quote
 
@@ -41,8 +43,10 @@ if any(ch in STREAM_HOST for ch in "/?#@ "):
 cloud = CloudCam()
 cloud.login()
 cloud.start_token_refresh(interval=900)
+stream_process: subprocess.Popen | None = None
+stream_lock = __import__("threading").Lock()
 
-serve_command = [
+SERVE_COMMAND = [
     sys.executable, "-m", "cloudcam", "serve",
     "--listen", "0.0.0.0",
     "--rtsp-port", "8554",
@@ -50,7 +54,27 @@ serve_command = [
     "--read-user", STREAM_USER,
     "--read-pass", STREAM_PASSWORD,
 ]
-stream_process = subprocess.Popen(serve_command)
+
+
+def ensure_stream_service() -> None:
+    """Start MediaMTX only after the account actually returns a camera."""
+    global stream_process
+    with stream_lock:
+        if stream_process is not None and stream_process.poll() is None:
+            return
+        stream_process = subprocess.Popen(SERVE_COMMAND)
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline:
+            if stream_process.poll() is not None:
+                raise RuntimeError("CloudCam stream service exited during startup")
+            try:
+                with socket.create_connection(("127.0.0.1", 8554), timeout=0.4):
+                    return
+            except OSError:
+                time.sleep(0.25)
+        if stream_process.poll() is None:
+            stream_process.terminate()
+        raise RuntimeError("CloudCam RTSP service did not become ready")
 
 
 def camera_payload() -> dict:
@@ -73,11 +97,24 @@ def camera_payload() -> dict:
                 f"rtsp://{safe_user}:{safe_password}@{STREAM_HOST}:8554/{stream_path}"
             ),
         })
-    return {"status": "ok", "count": len(items), "cameras": items}
+
+    if items:
+        ensure_stream_service()
+
+    return {
+        "status": "ok",
+        "count": len(items),
+        "stream_service": "ready" if items else "waiting_for_cameras",
+        "message": (
+            "Camera list is empty. The shared devices may not be exposed by this account/API."
+            if not items else ""
+        ),
+        "cameras": items,
+    }
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "CCTV-HikConnect-Bridge/1.0"
+    server_version = "CCTV-HikConnect-Bridge/1.1"
 
     def log_message(self, fmt: str, *args) -> None:
         # Never log headers, credentials, or stream URLs.
@@ -98,8 +135,10 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         if self.path == "/health":
+            running = stream_process is not None and stream_process.poll() is None
             self.send_json(200, {
-                "status": "ok" if stream_process.poll() is None else "stream_service_stopped"
+                "status": "ok",
+                "stream_service": "ready" if running else "not_started",
             })
             return
         if self.path != "/v1/cameras":
@@ -107,9 +146,6 @@ class Handler(BaseHTTPRequestHandler):
             return
         if not self.authorised():
             self.send_json(401, {"error": "unauthorised"})
-            return
-        if stream_process.poll() is not None:
-            self.send_json(503, {"error": "cloud_stream_service_stopped"})
             return
         try:
             self.send_json(200, camera_payload())
@@ -139,7 +175,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def shutdown(_signum=None, _frame=None) -> None:
     LOG.info("Stopping Hik-Connect bridge")
-    if stream_process.poll() is None:
+    if stream_process is not None and stream_process.poll() is None:
         stream_process.terminate()
         try:
             stream_process.wait(timeout=8)
@@ -150,14 +186,14 @@ def shutdown(_signum=None, _frame=None) -> None:
 
 
 if __name__ == "__main__":
+    import threading
+
     logging.basicConfig(
         level=os.environ.get("LOG_LEVEL", "INFO").upper(),
         format="%(asctime)s %(levelname)s %(message)s",
     )
     signal.signal(signal.SIGTERM, shutdown)
     signal.signal(signal.SIGINT, shutdown)
-    if stream_process.poll() is not None:
-        raise RuntimeError("cloudcam serve exited during startup")
     server = ThreadingHTTPServer(("0.0.0.0", API_PORT), Handler)
     LOG.info("Hik-Connect bridge API listening on port %s", API_PORT)
     try:
