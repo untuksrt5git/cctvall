@@ -34,18 +34,21 @@ def runtime_info() -> str:
     })
 
 
-def login_and_list(email: str, password: str, platform: str = "hikconnect",
+def login_and_list(account: str, password: str, platform: str = "hikconnect",
                    home: str | None = None) -> str:
     """Log in using CloudCam on-device and return the cloud camera catalogue.
+
+    CloudCam calls this setting ``email`` internally, but sends it to Hik-Connect
+    as the API ``account`` field. It may therefore be a username, user ID, or email.
 
     The password is used for this call only and is never written to settings.
     CloudCam's session token and cache are stored in the app-private directory.
     """
     global _RUNTIME, _RUNTIME_HOME
 
-    email = (email or "").strip()
-    if not email or not password:
-        raise ValueError("Email dan kata sandi wajib diisi.")
+    account = (account or "").strip()
+    if not account or not password:
+        raise ValueError("Username, user ID, atau email dan kata sandi wajib diisi.")
     if platform not in ("hikconnect", "ezviz"):
         raise ValueError("Platform CloudCam tidak dikenal.")
 
@@ -54,7 +57,7 @@ def login_and_list(email: str, password: str, platform: str = "hikconnect",
         os.environ["CLOUDCAM_HOME"] = home
 
     with _RUNTIME_LOCK:
-        if _RUNTIME is not None and _RUNTIME_HOME != home:
+        if _RUNTIME is not None and (_RUNTIME_HOME != home or getattr(_RUNTIME.settings, "email", "") != account):
             try:
                 _RUNTIME.close()
             except Exception:
@@ -65,7 +68,7 @@ def login_and_list(email: str, password: str, platform: str = "hikconnect",
             from cloudcam import CloudCam, Settings
 
             settings = Settings.resolve().replace(
-                email=email,
+                email=account,
                 password=password,
                 platform=platform,
                 warm_cache=False,
