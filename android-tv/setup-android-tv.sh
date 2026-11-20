@@ -7,7 +7,7 @@ echo "Gunakan Termux resmi dari F-Droid atau GitHub, bukan Play Store lama."
 pkg update -y
 pkg upgrade -y
 # NumPy is installed from Termux; requests and PyCryptodome are installed with pip.
-pkg install -y python python-numpy ffmpeg git curl clang make pkg-config
+pkg install -y python python-numpy ffmpeg git curl clang make pkg-config mediamtx
 
 VENV="$HOME/.venvs/cctvall-cloudcam"
 mkdir -p "$HOME/.venvs"
@@ -34,4 +34,4 @@ echo "PERSIAPAN SELESAI."
 echo "Jalankan server dengan perintah:"
 echo "  ~/bin/start-cloudcam-server"
 echo
-echo "Catatan: MediaMTX ARM64 akan dipasang dan diuji pada saat server pertama kali dijalankan."
+echo "MediaMTX dipasang melalui paket Termux (mediamtx). Periksa dengan: command -v mediamtx"
