@@ -2,6 +2,8 @@ package id.cctvall.app
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -77,18 +79,38 @@ class MainActivity : Activity() {
 
     private fun showUniarchInfo() {
         AlertDialog.Builder(this)
-            .setTitle("Uniarch Care")
-            .setMessage("Menu Uniarch disediakan untuk integrasi akun Uniarch Care. Koneksi cloud langsung belum aktif pada versi ini. Uniview menyediakan jalur integrasi API/SDK melalui platform pengembang Unisee; akses dan dokumentasi integrasi perlu disiapkan sebelum akun dan daftar kamera dapat disambungkan dengan aman. Jangan masukkan kata sandi akun di sini dulu.")
-            .setPositiveButton("Mengerti", null)
+            .setTitle("Hubungkan Uniarch Care")
+            .setMessage("Status: BELUM TERSAMBUNG. Uniview menyediakan EZCloud App SDK untuk streaming P2P dan API untuk pengelolaan perangkat. SDK serta dokumentasinya perlu diperoleh melalui portal pengembang Unisee dan persyaratan integrasinya dipenuhi. Setelah SDK resmi tersedia, login akun, daftar perangkat yang dibagikan, dan live view dapat diintegrasikan di sini. Jangan masukkan kata sandi Uniarch Care di layar ini.")
+            .setPositiveButton("Buka Unisee") { _, _ ->
+                openOfficialPage("https://global-open.uniview.com/")
+            }
+            .setNegativeButton("Panduan EZCloud") { _, _ ->
+                openOfficialPage("https://global.uniview.com/Topics/EZCloud_Platform/")
+            }
+            .setNeutralButton("Tutup", null)
             .show()
     }
 
     private fun showHikConnectInfo() {
         AlertDialog.Builder(this)
-            .setTitle("Hik-Connect")
-            .setMessage("Menu Hik-Connect disediakan untuk perangkat yang dibagikan kepada akun Anda. Koneksi langsung belum aktif pada versi ini. API resmi Hikvision memerlukan pendaftaran partner/TPP dan API key. Dukungan membaca perangkat share milik akun penerima seperti akun Anda juga harus dikonfirmasi terlebih dahulu. Jangan masukkan kata sandi Hik-Connect di sini dulu.")
-            .setPositiveButton("Mengerti", null)
+            .setTitle("Hubungkan Hik-Connect")
+            .setMessage("Status: BELUM TERSAMBUNG. Integrasi resmi memakai Hik-Connect OpenAPI dan API key yang harus diajukan ke Hikvision melalui Technology Partner Portal. Karena akun Anda hanya menerima perangkat yang dibagikan, dukungan daftar dan streaming perangkat share harus dipastikan bersama Hikvision sebelum integrasi diaktifkan. Jangan masukkan kata sandi Hik-Connect di layar ini.")
+            .setPositiveButton("Buka Portal TPP") { _, _ ->
+                openOfficialPage("https://tpp.hikvision.com/")
+            }
+            .setNegativeButton("Panduan Hik-Connect API") { _, _ ->
+                openOfficialPage("https://tpp.hikvision.com/products/HC-Integration")
+            }
+            .setNeutralButton("Tutup", null)
             .show()
+    }
+
+    private fun openOfficialPage(url: String) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        } catch (_: Exception) {
+            Toast.makeText(this, "Tidak dapat membuka halaman resmi. Periksa browser perangkat.", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun showAddCamera() {
