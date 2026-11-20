@@ -94,6 +94,10 @@ class Handler(SimpleHTTPRequestHandler):
             self._json(400, {"ok": False, "error": "Data formulir tidak valid."})
             return
 
+        if not isinstance(payload, dict):
+            self._json(400, {"ok": False, "error": "Format data formulir tidak valid."})
+            return
+
         name = str(payload.get("name", "")).strip()
         host = str(payload.get("host", "")).strip()
         port_text = str(payload.get("port", "554")).strip()
