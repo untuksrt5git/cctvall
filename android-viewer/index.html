@@ -33,6 +33,7 @@ main{display:grid;gap:10px;padding:12px}#wall{display:grid;gap:10px;grid-templat
 .camera-option{display:flex;align-items:center;gap:7px;margin:0;padding:7px;border-radius:6px;background:var(--bg);font-size:12px;font-weight:500}
 .camera-option input{width:17px;height:17px;flex-shrink:0;accent-color:var(--acc)}
 .picker-info{font-size:12px;color:var(--mute);margin-top:8px}
+.rtsp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:7px}.rtsp-grid label{margin-top:8px}.rtsp-grid input{min-width:0}
 dialog{width:min(650px,94vw);max-height:88dvh;overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);padding:18px}
 dialog::backdrop{background:rgba(0,0,0,.55)}label{display:block;font-weight:600;margin:12px 0 4px}
 input,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px}
@@ -57,6 +58,22 @@ textarea{min-height:260px;font-family:ui-monospace,Menlo,Consolas,monospace;font
 <div class="picker-info" id="selectionInfo"></div>
 </details>
 <section id="wall" aria-label="Dinding kamera"></section>
+
+<details class="picker-panel" id="webAddPanel">
+<summary>Tambah kamera Tuya / RTSP langsung dari web</summary>
+<p class="hint">Form ini menyimpan kamera ke CloudCam di HP server. Browser tidak bisa melakukan pencarian ONVIF multicast sendiri; masukkan IP kamera dan path RTSP yang diketahui dari pengaturan ONVIF kamera.</p>
+<div class="rtsp-grid">
+<div><label for="webRtspName">Nama kamera</label><input id="webRtspName" placeholder="tuya_kamera2" autocomplete="off"></div>
+<div><label for="webRtspHost">IP kamera (LAN)</label><input id="webRtspHost" placeholder="192.168.1.80" inputmode="decimal"></div>
+<div><label for="webRtspPort">Port RTSP</label><input id="webRtspPort" type="number" value="554"></div>
+<div><label for="webRtspUser">Username ONVIF / RTSP</label><input id="webRtspUser" autocomplete="off"></div>
+<div><label for="webRtspPass">Password ONVIF / RTSP</label><input id="webRtspPass" type="password" autocomplete="new-password"></div>
+<div><label for="webRtspPath">Path RTSP</label><input id="webRtspPath" placeholder="/stream1 atau /main"></div>
+<div><label for="webAdminToken">Kode pengelola dari Termux</label><input id="webAdminToken" type="password" autocomplete="off"></div>
+</div>
+<div class="picker-actions"><button type="button" class="primary" id="webAddRtsp">Simpan kamera ke CloudCam</button></div>
+<p class="hint" id="webAddMessage">Setelah tersimpan, CloudCam perlu dimulai ulang agar path baru aktif. Gunakan hanya pada Wi-Fi tepercaya; jangan teruskan port dashboard ke internet.</p>
+</details>
 <div class="status" id="status" role="status">Ketuk salah satu kamera untuk mulai menonton.</div>
 </main>
 <dialog id="dlg">
@@ -324,6 +341,49 @@ document.getElementById("cfgBtn").addEventListener("click", () => {
   dlg.showModal();
 });
 document.getElementById("cancel").addEventListener("click", () => dlg.close());
+
+document.getElementById("webAddRtsp").addEventListener("click", async () => {
+  const message = document.getElementById("webAddMessage");
+  const button = document.getElementById("webAddRtsp");
+  const payload = {
+    name: document.getElementById("webRtspName").value.trim(),
+    host: document.getElementById("webRtspHost").value.trim(),
+    port: document.getElementById("webRtspPort").value.trim() || "554",
+    username: document.getElementById("webRtspUser").value.trim(),
+    password: document.getElementById("webRtspPass").value,
+    path: document.getElementById("webRtspPath").value.trim()
+  };
+  const token = document.getElementById("webAdminToken").value.trim();
+  if (!token) { message.textContent = "Masukkan kode pengelola yang ditampilkan di Termux."; return; }
+  if (Object.values(payload).some(value => !value)) { message.textContent = "Lengkapi semua kolom kamera."; return; }
+  button.disabled = true;
+  message.textContent = "Mengirim konfigurasi ke HP server...";
+  try {
+    const response = await fetch(new URL("/api/rtsp/add", window.location.href), {
+      method: "POST",
+      headers: {"Content-Type": "application/json", "X-CCTV-Token": token},
+      body: JSON.stringify(payload),
+      cache: "no-store"
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error(result.error || "Pendaftaran gagal.");
+    const existing = parseCams(cfg.cams);
+    if (!existing.some(cam => cam.main === result.path)) {
+      cfg.cams = cfg.cams.trimEnd() + "\n" + payload.name + " | " + result.path;
+    }
+    persist();
+    build();
+    document.getElementById("webRtspPass").value = "";
+    document.getElementById("webAdminToken").value = "";
+    message.textContent = "Berhasil disimpan: " + result.path + ". Hentikan CloudCam dengan Ctrl+C lalu jalankan lagi ~/bin/start-cloudcam-server. Setelah itu pilih kamera baru pada daftar kamera.";
+    statusEl.textContent = "Kamera " + payload.name + " tersimpan. Restart CloudCam diperlukan sebelum stream dapat dibuka.";
+  } catch (error) {
+    message.textContent = error.message || "Tidak dapat menghubungi layanan di Termux. Pastikan memakai start-dashboard-server.py, bukan python -m http.server.";
+  } finally {
+    button.disabled = false;
+  }
+});
+
 document.getElementById("save").addEventListener("click", () => {
   const base = document.getElementById("base").value.trim();
   const camsText = document.getElementById("cams").value;
