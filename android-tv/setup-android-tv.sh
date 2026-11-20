@@ -5,16 +5,19 @@ echo "== CCTV All-in-One: persiapan CloudCam untuk Android TV =="
 echo "Gunakan Termux resmi dari F-Droid atau GitHub, bukan Play Store lama."
 
 pkg update -y
-pkg install -y python python-numpy python-pycryptodome python-requests ffmpeg git curl
+pkg upgrade -y
+# NumPy is installed from Termux; requests and PyCryptodome are installed with pip.
+pkg install -y python python-numpy ffmpeg git curl clang make pkg-config
 
 VENV="$HOME/.venvs/cctvall-cloudcam"
 mkdir -p "$HOME/.venvs"
 if [ ! -x "$VENV/bin/python" ]; then
-  # Pakai modul native Termux (NumPy/PyCryptodome) agar tidak dikompilasi ulang oleh pip.
+  # Gunakan NumPy native Termux; dependensi Python lainnya dipasang melalui pip.
   python -m venv --system-site-packages "$VENV"
 fi
 
-"$VENV/bin/python" -m pip install --upgrade pip
+"$VENV/bin/python" -m pip install --upgrade pip setuptools wheel
+"$VENV/bin/python" -m pip install requests pycryptodome
 "$VENV/bin/python" -m pip install --no-deps --upgrade \
   "git+https://github.com/Bahrombekk/cloud-cam-viewer.git@3d2f057ae138ef7320258caf2a8d3764b5e8114f"
 
