@@ -62,7 +62,7 @@ function selected(){return [...list.querySelectorAll('input:checked')]}\ndocumen
  const ip=document.getElementById('tuya-ip').value.trim(),user=document.getElementById('tuya-user').value.trim(),pass=document.getElementById('tuya-pass').value,port=document.getElementById('tuya-port').value.trim()||'554',rtspPath=document.getElementById('tuya-path').value.trim(),name=document.getElementById('tuya-name').value.trim().replace(/^\\/+|\\/+$/g,'');
  if(!ip||!user||!pass||!rtspPath||!name){status.textContent='Lengkapi IP, username, password ONVIF, path RTSP, dan nama path.';return}
  const enc=v=>encodeURIComponent(v),source='rtsp://'+enc(user)+':'+enc(pass)+'@'+ip+':'+port+(rtspPath.startsWith('/')?rtspPath:'/'+rtspPath);
- const yaml="paths:\\n  "+name+":\\n    source: '"+source.replace(/'/g,"''")+"'\\n    sourceOnDemand: yes";
+ const yaml="paths:\n  "+name+":\n    source: '"+source.replace(/'/g,"''")+"'\n    sourceOnDemand: yes";
  document.getElementById('tuya-output').value=yaml;
  status.textContent='Konfigurasi dibuat di browser. Password tidak disimpan oleh halaman; jangan membagikan hasil konfigurasi karena berisi kredensial.';
 };
