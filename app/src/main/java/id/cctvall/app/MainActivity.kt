@@ -82,8 +82,10 @@ class MainActivity : Activity() {
     private fun menuButton(label: String, action: () -> Unit): Button {
         return Button(this).apply {
             text = label
-            textSize = 14f
+            textSize = 16f
+            minHeight = 56
             isAllCaps = false
+            setPadding(12, 8, 12, 8)
             setOnClickListener { action() }
         }
     }
