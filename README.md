@@ -65,3 +65,7 @@ Halaman publik resmi Uniview mengonfirmasi tersedianya App SDK untuk P2P STUN/TU
 ## Lisensi CloudCam
 
 Sumber Python CloudCam diambil dari repositori upstream pada commit `3d2f057ae138ef7320258caf2a8d3764b5e8114f` saat build. File LICENSE dan NOTICE ikut disertakan dalam APK.
+
+### Hik-Connect account identifier
+
+The CloudCam Android login field accepts a Hik-Connect username, user ID, or email. Upstream CloudCam calls the setting `email` internally for compatibility, but its Hik-Connect API request sends the value as `account`; no email-format validation should be applied by the Android UI.
