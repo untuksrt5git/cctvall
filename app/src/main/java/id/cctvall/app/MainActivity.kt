@@ -43,21 +43,26 @@ class MainActivity : Activity() {
             setBackgroundColor(0xFF101820.toInt())
         }
 
-        // Four entry points: manual RTSP, local ONVIF, and vendor cloud integrations.
-        val firstRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val secondRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-
-        firstRow.addView(menuButton("+ Tambah Kamera") { showAddCamera() },
-            LinearLayout.LayoutParams(0, 58, 1f).apply { rightMargin = 5 })
-        firstRow.addView(menuButton("ONVIF") { showOnvifInfo() },
-            LinearLayout.LayoutParams(0, 58, 1f).apply { leftMargin = 5 })
-        secondRow.addView(menuButton("Uniarch Care") { showUniarchInfo() },
-            LinearLayout.LayoutParams(0, 58, 1f).apply { rightMargin = 5 })
-        secondRow.addView(menuButton("Hik-Connect") { showHikConnectInfo() },
-            LinearLayout.LayoutParams(0, 58, 1f).apply { leftMargin = 5 })
-
-        root.addView(firstRow, LinearLayout.LayoutParams(-1, -2))
-        root.addView(secondRow, LinearLayout.LayoutParams(-1, -2).apply { topMargin = 8 })
+        // Menu satu kolom: label jelas dan mudah disentuh di layar HP portrait.
+        root.addView(TextView(this).apply {
+            text = "CCTV ALL-IN-ONE"
+            textSize = 20f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(0xFFFFFFFF.toInt())
+            setPadding(4, 4, 4, 2)
+        }, LinearLayout.LayoutParams(-1, -2))
+        root.addView(TextView(this).apply {
+            text = "Pilih sumber kamera"
+            textSize = 14f
+            setTextColor(0xFFB8C7D1.toInt())
+            setPadding(4, 0, 4, 12)
+        }, LinearLayout.LayoutParams(-1, -2))
+        val menu = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        menu.addView(menuButton("+  Tambah Kamera RTSP") { showAddCamera() }, LinearLayout.LayoutParams(-1, 58).apply { bottomMargin = 7 })
+        menu.addView(menuButton("ONVIF  ·  Kamera jaringan lokal") { showOnvifInfo() }, LinearLayout.LayoutParams(-1, 58).apply { bottomMargin = 7 })
+        menu.addView(menuButton("Uniarch Care  ·  Uniview Cloud") { showUniarchInfo() }, LinearLayout.LayoutParams(-1, 58).apply { bottomMargin = 7 })
+        menu.addView(menuButton("Hik-Connect  ·  Kamera cloud/share") { showHikConnectInfo() }, LinearLayout.LayoutParams(-1, 58).apply { bottomMargin = 12 })
+        root.addView(menu, LinearLayout.LayoutParams(-1, -2))
 
         empty = TextView(this).apply {
             text = "Belum ada kamera yang ditambahkan."
@@ -136,7 +141,7 @@ class MainActivity : Activity() {
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
         }
         panel.addView(TextView(this).apply {
-            text = "Akun dipakai langsung oleh CloudCam di perangkat ini. Kata sandi tidak disimpan oleh aplikasi."
+            text = "Masukkan username ATAU User ID ATAU email yang biasa dipakai untuk login Hik-Connect. Kata sandi tidak disimpan oleh aplikasi."
             setTextColor(0xFFE0E6EA.toInt())
         })
         panel.addView(account)
@@ -153,7 +158,7 @@ class MainActivity : Activity() {
                 val user = account.text.toString().trim()
                 val pass = password.text.toString()
                 if (user.isBlank() || pass.isBlank()) {
-                    Toast.makeText(this, "Isi username, user ID, atau email beserta kata sandi Hik-Connect.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "Isi username / User ID / email dan kata sandi Hik-Connect.", Toast.LENGTH_LONG).show()
                     return@setOnClickListener
                 }
                 dialog.dismiss()
