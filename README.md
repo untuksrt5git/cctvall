@@ -86,3 +86,7 @@ Catatan jaringan: untuk uji pertama, buka HTML melalui HTTP di jaringan lokal ya
 ## Android TV CloudCam Server (eksperimental)
 
 Panduan menjalankan CloudCam langsung di Android TV 10/11 melalui Termux (tanpa PC Windows): [android-tv/README.md](android-tv/README.md). Tahap pertama menguji server RTSP di jaringan lokal; akses internet jarak jauh dan autostart dibuat setelah uji perangkat berhasil.
+
+### Rencana Uniarch Cloud Bridge (dua jalur)
+
+Rencana terpisah untuk integrasi SDK EZCloud resmi dan riset kompatibilitas berbasis observasi aplikasi yang tidak melewati autentikasi/izin: [docs/uniarch-dual-track.md](docs/uniarch-dual-track.md). Belum ada live-stream Uniarch yang diklaim aktif sampai SDK dan kredensial integrasi resmi tersedia.
