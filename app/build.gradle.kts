@@ -24,4 +24,6 @@ android {
 
 dependencies {
     implementation("com.google.android.exoplayer:exoplayer:2.19.1")
+    // RTSP is a separate ExoPlayer module; required for cloud-cam-viewer streams.
+    implementation("com.google.android.exoplayer:exoplayer-rtsp:2.19.1")
 }
