@@ -69,6 +69,27 @@ Gunakan username/password viewer yang dibuat pada langkah 3. Uji dulu dengan VLC
 perangkat lain di Wi-Fi yang sama. Setelah terbukti lancar, alamat ini akan dipakai oleh
 APK Viewer STB KitKat.
 
+## Menambahkan kamera RTSP / ONVIF (misalnya Smart Life / Tuya)
+
+Setelah helper dipasang, jalankan perintah yang dibuat oleh HTML Viewer. Perintah itu
+memanggil `~/bin/add-rtsp-camera` dan meminta password ONVIF secara tersembunyi.
+Password tidak ditulis pada perintah yang disalin dari browser. URL RTSP disimpan oleh
+CloudCam di file privat `~/.config/cloudcam/rtsp_cameras.json`.
+
+Jika helper belum ada di Termux, pasang sekali:
+
+```bash
+mkdir -p ~/bin
+curl -L https://raw.githubusercontent.com/untuksrt5git/cctvall/main/android-tv/add-rtsp-camera.sh -o ~/bin/add-rtsp-camera
+chmod 700 ~/bin/add-rtsp-camera
+```
+
+Setelah pendaftaran berhasil, hentikan proses `cloudcam serve` dengan Ctrl+C lalu
+jalankan kembali `~/bin/start-cloudcam-server`. CloudCam akan memuat kamera RTSP yang
+tersimpan dan membuat path WebRTC `rtsp/NAMA_KAMERA`. Gunakan path persis itu pada
+form Tambah kamera di HTML Viewer. Contoh: nama `tuya_kamera1` menghasilkan path
+`rtsp/tuya_kamera1`, bukan `tuya/kamera1`.
+
 ## Catatan penting
 
 - Ini tahap server eksperimental berbasis Termux, bukan APK server satu-klik.
