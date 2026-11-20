@@ -70,18 +70,18 @@ Sumber Python CloudCam diambil dari repositori upstream pada commit `3d2f057ae13
 
 The CloudCam Android login field accepts a Hik-Connect username, user ID, or email. Upstream CloudCam calls the setting `email` internally for compatibility, but its Hik-Connect API request sends the value as `account`; no email-format validation should be applied by the Android UI.
 
-## HTML Android Viewer (uji lokal)
+## Dinding CCTV Android Viewer
 
-Viewer multi-kamera berbasis HTML tersedia di [android-viewer/index.html](android-viewer/index.html). Viewer memuat halaman WebRTC bawaan MediaMTX untuk setiap kamera, sehingga CloudCam tetap berjalan sebagai server terpisah.
+Dashboard utama tersedia di [android-viewer/index.html](android-viewer/index.html), dengan panduan pemakaian di [android-viewer/README.md](android-viewer/README.md). Fitur pendaftaran RTSP dari browser menggunakan backend kecil [start-dashboard-server.py](android-viewer/start-dashboard-server.py), dijalankan dengan Python virtual environment CloudCam.
 
-Fitur awal:
-- Daftar 25 path kamera dari hasil pengujian.
-- Grid 1, 4, 9, atau 16 kamera.
-- Pilihan main stream atau substream.
-- Alamat IP dan port WebRTC dapat diubah; alamat IP contoh awal adalah `192.168.1.26`.
-- Tidak menyimpan kata sandi CloudCam di file HTML.
+Fitur:
+- Grid 1/4/9/16; default 4 kamera, kamera dipilih satu per satu.
+- Mulai bertahap 2,5 detik; konfirmasi untuk lebih dari 4 stream; Jeda semua menutup iframe.
+- Substream untuk grid bila tersedia; main stream untuk layar penuh.
+- Form browser untuk menyimpan kamera RTSP/Tuya ke CloudCam dengan kode pengelola satu kali.
+- Path Hik-Connect dan Tuya yang telah diuji tetap disertakan.
 
-Catatan jaringan: untuk uji pertama, buka HTML melalui HTTP di jaringan lokal yang sama dengan MediaMTX. Halaman GitHub Pages memakai HTTPS dan browser dapat memblokir iframe WebRTC yang menuju alamat HTTP lokal (mixed content). Jangan membuka port MediaMTX langsung ke internet; gunakan VPN/tunnel aman untuk akses jarak jauh.
+Untuk mengaktifkan API web, jalankan `~/.venvs/cctvall-cloudcam/bin/python ~/cctvall/android-viewer/start-dashboard-server.py --bind 0.0.0.0 --port 8090`, bukan `python -m http.server`. Form web masih memerlukan IP dan path RTSP yang diketahui; pencarian ONVIF multicast otomatis belum aktif. Gunakan hanya pada LAN tepercaya karena HTTP lokal tidak mengenkripsi password. Jangan membuka port dashboard/MediaMTX ke internet; gunakan VPN dan HTTPS untuk akses jarak jauh.
 
 ## Android TV CloudCam Server (eksperimental)
 
