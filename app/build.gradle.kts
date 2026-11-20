@@ -12,8 +12,8 @@ android {
         applicationId = "id.cctvall.app"
         minSdk = 23
         targetSdk = 34
-        versionCode = 5
-        versionName = "0.4.0"
+        versionCode = 6
+        versionName = "0.4.1"
         ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a") }
     }
 
