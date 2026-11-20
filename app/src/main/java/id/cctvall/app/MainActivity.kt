@@ -21,7 +21,7 @@ import com.google.android.exoplayer2.PlaybackException
 import com.google.android.exoplayer2.source.rtsp.RtspMediaSource
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 
-data class CameraEntry(val name: String, val url: String, val isCloud: Boolean = false)
+data class CameraEntry(val name: String, val url: String, val isCloud: Boolean = false, val hlsUrl: String = "")
 
 class MainActivity : Activity() {
     private val cameras = mutableListOf<CameraEntry>()
@@ -186,8 +186,9 @@ class MainActivity : Activity() {
                         val item = items.optJSONObject(i) ?: continue
                         val name = item.optString("name", "Kamera Hik-Connect")
                         val rtsp = item.optString("rtsp_url", "")
+                        val hls = item.optString("hls_url", "")
                         if (rtsp.startsWith("rtsp://") || rtsp.startsWith("rtsps://")) {
-                            loaded.add(CameraEntry(name, rtsp, true))
+                            loaded.add(CameraEntry(name, rtsp, true, hls))
                         }
                     }
                 }
@@ -320,11 +321,21 @@ class MainActivity : Activity() {
         panel.addView(status, LinearLayout.LayoutParams(-1, -2))
         panel.addView(view, LinearLayout.LayoutParams(-1, 0, 1f))
 
+        val playbackButtons = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
         val retry = Button(this).apply {
-            text = "Coba Sambungkan Lagi"
+            text = "Coba RTSP Lagi"
             isAllCaps = false
         }
-        panel.addView(retry, LinearLayout.LayoutParams(-1, -2))
+        val hlsFallback = Button(this).apply {
+            text = "Coba HLS"
+            isAllCaps = false
+            visibility = if (camera.hlsUrl.startsWith("http://") || camera.hlsUrl.startsWith("https://")) View.VISIBLE else View.GONE
+        }
+        playbackButtons.addView(retry, LinearLayout.LayoutParams(0, -2, 1f))
+        playbackButtons.addView(hlsFallback, LinearLayout.LayoutParams(0, -2, 1f))
+        panel.addView(playbackButtons, LinearLayout.LayoutParams(-1, -2))
 
         player?.release()
         val p = ExoPlayer.Builder(this).build()
@@ -336,10 +347,15 @@ class MainActivity : Activity() {
             .setForceUseRtpTcp(true)
             .setTimeoutMs(25_000)
 
-        fun startStream() {
-            status.text = "Menghubungkan ke Hik-Connect... video pertama bisa memerlukan beberapa detik."
+        fun startStream(useHls: Boolean = false) {
             p.stop()
-            p.setMediaSource(rtspFactory.createMediaSource(mediaItem))
+            if (useHls) {
+                status.text = "Mencoba HLS... video pertama bisa memerlukan beberapa detik."
+                p.setMediaItem(MediaItem.fromUri(Uri.parse(camera.hlsUrl)))
+            } else {
+                status.text = "Menghubungkan ke Hik-Connect melalui RTSP..."
+                p.setMediaSource(rtspFactory.createMediaSource(mediaItem))
+            }
             p.prepare()
             p.playWhenReady = true
         }
@@ -364,7 +380,8 @@ class MainActivity : Activity() {
             }
         })
 
-        retry.setOnClickListener { startStream() }
+        retry.setOnClickListener { startStream(false) }
+        hlsFallback.setOnClickListener { startStream(true) }
 
         val dialog = AlertDialog.Builder(this)
             .setTitle(camera.name)
