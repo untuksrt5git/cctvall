@@ -11,6 +11,7 @@ import signal
 import socket
 import subprocess
 import sys
+import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import quote
@@ -44,7 +45,7 @@ cloud = CloudCam()
 cloud.login()
 cloud.start_token_refresh(interval=900)
 stream_process: subprocess.Popen | None = None
-stream_lock = __import__("threading").Lock()
+stream_lock = threading.Lock()
 
 SERVE_COMMAND = [
     sys.executable, "-m", "cloudcam", "serve",
@@ -186,8 +187,6 @@ def shutdown(_signum=None, _frame=None) -> None:
 
 
 if __name__ == "__main__":
-    import threading
-
     logging.basicConfig(
         level=os.environ.get("LOG_LEVEL", "INFO").upper(),
         format="%(asctime)s %(levelname)s %(message)s",
