@@ -25,6 +25,14 @@ main{display:grid;gap:10px;padding:12px}#wall{display:grid;gap:10px;grid-templat
 .cap button{padding:3px 9px;font-size:12px;background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)}
 .tile.full{position:fixed;inset:0;z-index:20;border-radius:0;aspect-ratio:auto;border:0;background:#000}
 .empty{grid-column:1/-1;padding:40px 16px;text-align:center;color:var(--mute)}.status{color:var(--mute);font-size:13px;padding:0 2px}.note{color:var(--mute);font-size:12px;padding:0 2px}
+.picker-panel{border:1px solid var(--line);border-radius:9px;background:var(--panel);padding:10px}
+.picker-panel summary{font-weight:650;cursor:pointer}
+.picker-actions{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+.picker-actions button{font-size:12px;padding:6px 10px}
+.camera-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:5px;max-height:210px;overflow:auto}
+.camera-option{display:flex;align-items:center;gap:7px;margin:0;padding:7px;border-radius:6px;background:var(--bg);font-size:12px;font-weight:500}
+.camera-option input{width:17px;height:17px;flex-shrink:0;accent-color:var(--acc)}
+.picker-info{font-size:12px;color:var(--mute);margin-top:8px}
 dialog{width:min(650px,94vw);max-height:88dvh;overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);padding:18px}
 dialog::backdrop{background:rgba(0,0,0,.55)}label{display:block;font-weight:600;margin:12px 0 4px}
 input,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px}
@@ -36,12 +44,18 @@ textarea{min-height:260px;font-family:ui-monospace,Menlo,Consolas,monospace;font
 </head>
 <body>
 <header><h1>Dinding CCTV</h1><div class="bar">
-<label for="cols" style="margin:0;font-weight:400">Kolom</label>
-<select id="cols"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select>
-<button id="startAll" class="primary">Mulai semua</button><button id="stopAll">Jeda semua</button><button id="cfgBtn">Pengaturan</button>
+<label for="limit" style="margin:0;font-weight:400">Jumlah tampil</label>
+<select id="limit"><option value="1">1 kamera</option><option value="4" selected>4 kamera</option><option value="9">9 kamera</option><option value="16">16 kamera</option></select>
+<button id="startAll" class="primary">Mulai yang tampil</button><button id="stopAll">Jeda semua</button><button id="cfgBtn">Pengaturan</button>
 </div></header>
 <main>
-<div class="note">Grid memakai path ringan jika tersedia. Tombol layar penuh memakai path utama. Kamera baru harus sudah terdaftar di CloudCam/MediaMTX.</div>
+<div class="note">Awal hanya 4 kamera yang dipilih. Streaming tidak berjalan sebelum tombol Mulai ditekan. Disarankan 4 kamera dahulu untuk HP; 9 atau 16 kamera dapat lebih berat.</div>
+<details class="picker-panel">
+<summary>Pilih kamera yang ingin ditampilkan</summary>
+<div class="picker-actions"><button type="button" id="selectAllCams">Pilih semua</button><button type="button" id="firstFourCams">Pilih 4 awal</button><button type="button" id="clearSelection">Kosongkan</button></div>
+<div id="cameraList" class="camera-list"></div>
+<div class="picker-info" id="selectionInfo"></div>
+</details>
 <section id="wall" aria-label="Dinding kamera"></section>
 <div class="status" id="status" role="status">Ketuk salah satu kamera untuk mulai menonton.</div>
 </main>
@@ -60,76 +74,280 @@ textarea{min-height:260px;font-family:ui-monospace,Menlo,Consolas,monospace;font
 const KEY = "cctv-wall-v2";
 const DEFAULT = {
   base: "http://127.0.0.1:8889",
-  cols: 2,
+  limit: 4,
   cams: "RT 05 - pintu utama | cam/D77739233_1 | cam/D77739233_1/sub\nRT 05 - Camera 02 | cam/D77739233_2 | cam/D77739233_2/sub\nRT 05 - Camera 03 | cam/D77739233_3 | cam/D77739233_3/sub\nRT 05 - Camera 04 | cam/D77739233_4 | cam/D77739233_4/sub\nRT 05 - Camera 05 | cam/D77739233_5 | cam/D77739233_5/sub\nRT 05 - Camera 06 | cam/D77739233_6 | cam/D77739233_6/sub\nRT 05 - Camera 07 | cam/D77739233_7 | cam/D77739233_7/sub\nRT 05 - Camera 08 | cam/D77739233_8 | cam/D77739233_8/sub\nRT 05 - Camera 09 | cam/D77739233_9 | cam/D77739233_9/sub\nRT 05 - Camera 10 | cam/D77739233_10 | cam/D77739233_10/sub\nRT 05 - Camera 11 | cam/D77739233_11 | cam/D77739233_11/sub\nRT 05 - Camera 12 | cam/D77739233_12 | cam/D77739233_12/sub\nRT 05 - Camera 13 | cam/D77739233_13 | cam/D77739233_13/sub\nRT 05 - Camera 14 | cam/D77739233_14 | cam/D77739233_14/sub\nRT 05 - Camera 15 | cam/D77739233_15 | cam/D77739233_15/sub\nRT 05 - Camera 16 | cam/D77739233_16 | cam/D77739233_16/sub\nRT 05 - IKHWAN | cam/D77739233_17 | cam/D77739233_17/sub\nRT 05 - Akhwat2 | cam/D77739233_18 | cam/D77739233_18/sub\nRT 05 - POS RTRW | cam/D77739233_19 | cam/D77739233_19/sub\nRT 05 - POS Ngopi | cam/D77739233_20 | cam/D77739233_20/sub\nRT 05 - BALAI RT | cam/D77739233_21 | cam/D77739233_21/sub\nRT 05 - Lapangan | cam/D77739233_22 | cam/D77739233_22/sub\nRT 05 - Pdk_Klp3 | cam/D77739233_23 | cam/D77739233_23/sub\nRT 05 - Perpus | cam/D77739233_24 | cam/D77739233_24/sub\nPerpus | cam/G88779060_1 | cam/G88779060_1/sub\nTuya 1 | rtsp/tuya1"
 };
-let cfg = loadConfig(), cameras = [], startTimers = [];
-const wall = document.getElementById("wall"), statusEl = document.getElementById("status"), dlg = document.getElementById("dlg");
-function loadConfig(){try{const saved=JSON.parse(localStorage.getItem(KEY)||"null");if(saved&&typeof saved==="object")return {...DEFAULT,...saved};}catch(_){}return {...DEFAULT};}
-function persist(){try{localStorage.setItem(KEY,JSON.stringify(cfg));}catch(_){statusEl.textContent="Pengaturan tidak dapat disimpan oleh browser ini.";}}
-function parseCams(source){
- const result=[];
- for(const line of source.split(/\r?\n/)){
-  if(!line.trim())continue;
-  const p=line.split("|").map(x=>x.trim()),name=p[0]||p[1]||"Kamera";
-  const main=(p[1]||"").replace(/^\/+/,""),light=(p[2]||"").replace(/^\/+/,"");
-  if(!main||!/^[A-Za-z0-9._/-]+$/.test(main)||(light&&!/^[A-Za-z0-9._/-]+$/.test(light)))continue;
-  if(main.includes("..")||light.includes(".."))continue;
-  result.push({name,main,light});
- }
- return result;
+function parseCams(source) {
+  const result = [];
+  for (const line of source.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    const p = line.split("|").map(x => x.trim());
+    const name = p[0] || p[1] || "Kamera";
+    const main = (p[1] || "").replace(/^\/+/, "");
+    const light = (p[2] || "").replace(/^\/+/, "");
+    if (!main || !/^[A-Za-z0-9._/-]+$/.test(main) || (light && !/^[A-Za-z0-9._/-]+$/.test(light))) continue;
+    if (main.includes("..") || light.includes("..")) continue;
+    result.push({name, main, light});
+  }
+  return result;
 }
-function baseUrl(){
- const raw=cfg.base.trim().replace(/\/+$/,""),u=new URL(raw);
- if(!["http:","https:"].includes(u.protocol))throw new Error("Gunakan alamat http:// atau https://.");
- if(u.username||u.password||u.search||u.hash)throw new Error("Alamat tidak boleh berisi login, query, atau fragmen.");
- return raw;
+function loadConfig() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (saved && typeof saved === "object") return {...DEFAULT, ...saved};
+  } catch (_) {}
+  return {...DEFAULT};
 }
-function pathUrl(path){return baseUrl()+"/"+path.replace(/^\/+/,"");}
-function build(){
- cameras=parseCams(cfg.cams);wall.style.setProperty("--cols",String(cfg.cols));document.getElementById("cols").value=String(cfg.cols);wall.replaceChildren();
- if(!cameras.length){const e=document.createElement("div");e.className="empty";e.textContent="Belum ada kamera. Buka Pengaturan dan isi daftar kamera.";wall.append(e);return;}
- cameras.forEach((cam,i)=>wall.append(makeTile(cam,i)));
- statusEl.textContent=cameras.length+" kamera tersedia. Ketuk kamera untuk mulai; streaming belum berjalan sampai dipilih.";
+let cfg = loadConfig();
+let cameras = parseCams(cfg.cams);
+let startTimers = [];
+if (![1, 4, 9, 16].includes(Number(cfg.limit))) cfg.limit = 4;
+if (!Array.isArray(cfg.selected)) cfg.selected = cameras.slice(0, 4).map(c => c.main);
+cfg.selected = cfg.selected.filter(path => cameras.some(c => c.main === path));
+
+const wall = document.getElementById("wall");
+const statusEl = document.getElementById("status");
+const dlg = document.getElementById("dlg");
+const cameraList = document.getElementById("cameraList");
+const selectionInfo = document.getElementById("selectionInfo");
+
+function persist() {
+  try { localStorage.setItem(KEY, JSON.stringify(cfg)); }
+  catch (_) { statusEl.textContent = "Pengaturan tidak dapat disimpan oleh browser ini."; }
 }
-function makeTile(cam,index){
- const tile=document.createElement("article");tile.className="tile";tile.dataset.running="0";tile.dataset.index=String(index);
- const idle=document.createElement("button");idle.className="idle";idle.type="button";idle.textContent="Ketuk untuk memutar";idle.addEventListener("click",()=>start(tile,cam));
- const cap=document.createElement("div");cap.className="cap";const title=document.createElement("span");title.textContent=cam.name;
- const acts=document.createElement("div");acts.className="acts";
- const reload=document.createElement("button");reload.type="button";reload.textContent="Muat ulang";reload.addEventListener("click",()=>start(tile,cam));
- const full=document.createElement("button");full.type="button";full.textContent="Layar penuh";full.addEventListener("click",()=>toggleFull(tile,cam,full));
- acts.append(reload,full);cap.append(title,acts);tile.append(idle,cap);return tile;
+function baseUrl() {
+  const raw = cfg.base.trim().replace(/\/+$/, "");
+  const u = new URL(raw);
+  if (!["http:", "https:"].includes(u.protocol)) throw new Error("Gunakan alamat http:// atau https://.");
+  if (u.username || u.password || u.search || u.hash) throw new Error("Alamat tidak boleh berisi login, query, atau fragmen.");
+  return raw;
 }
-function clearView(tile){tile.querySelectorAll("iframe,.wait").forEach(n=>n.remove());}
-function start(tile,cam){
- let src,path;
- try{path=tile.classList.contains("full")?cam.main:(cam.light||cam.main);src=pathUrl(path);}
- catch(e){statusEl.textContent=e.message||"Alamat WebRTC tidak valid.";return;}
- clearView(tile);const idle=tile.querySelector(".idle");if(idle)idle.style.display="none";
- const wait=document.createElement("div");wait.className="wait";wait.textContent="Menyambung ke "+cam.name+"...";
- const frame=document.createElement("iframe");frame.title=cam.name;frame.allow="autoplay; fullscreen; picture-in-picture";frame.setAttribute("allowfullscreen","");frame.referrerPolicy="no-referrer";frame.src=src;
- frame.addEventListener("load",()=>{window.setTimeout(()=>wait.remove(),1800);statusEl.textContent="Pemutar dibuka: "+cam.name+" ("+path+"). Jika layar hitam, periksa sumber CloudCam.";},{once:true});
- tile.prepend(frame,wait);tile.dataset.running="1";window.setTimeout(()=>wait.remove(),12000);
+function pathUrl(path) { return baseUrl() + "/" + path.replace(/^\/+/, ""); }
+function selectedCameras() {
+  const selected = new Set(cfg.selected);
+  return cameras.filter(cam => selected.has(cam.main));
 }
-function stop(tile){clearView(tile);const idle=tile.querySelector(".idle");if(idle)idle.style.display="";tile.dataset.running="0";}
-function toggleFull(tile,cam,button){const enabled=!tile.classList.contains("full");tile.classList.toggle("full",enabled);button.textContent=enabled?"Tutup":"Layar penuh";if(tile.dataset.running==="1"||enabled)start(tile,cam);}
-document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;const tile=wall.querySelector(".tile.full");if(!tile)return;const i=Number(tile.dataset.index);tile.classList.remove("full");const b=tile.querySelector(".acts button:last-child");if(b)b.textContent="Layar penuh";if(cameras[i])start(tile,cameras[i]);});
-document.getElementById("cols").addEventListener("change",e=>{cfg.cols=Math.min(4,Math.max(1,Number(e.target.value)||2));persist();wall.style.setProperty("--cols",String(cfg.cols));});
-document.getElementById("startAll").addEventListener("click",()=>{
- startTimers.forEach(clearTimeout);startTimers=[];const tiles=[...wall.querySelectorAll(".tile")];
- tiles.forEach((tile,i)=>startTimers.push(window.setTimeout(()=>start(tile,cameras[Number(tile.dataset.index)]),i*900)));
- statusEl.textContent="Memulai "+tiles.length+" kamera secara berurutan. Jika banyak kamera gagal, mulai beberapa kamera saja.";
+function columnsForLimit(limit) {
+  return limit === 1 ? 1 : limit === 4 ? 2 : limit === 9 ? 3 : 4;
+}
+function updateSelectionInfo() {
+  const count = selectedCameras().length;
+  selectionInfo.textContent = count + " kamera dipilih. Maksimal " + cfg.limit +
+    " kamera ditampilkan sekaligus. Tombol Mulai hanya menjalankan kamera yang sedang tampil.";
+}
+function renderPicker() {
+  cameraList.replaceChildren();
+  const selected = new Set(cfg.selected);
+  cameras.forEach(cam => {
+    const label = document.createElement("label");
+    label.className = "camera-option";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = cam.main;
+    checkbox.checked = selected.has(cam.main);
+    checkbox.addEventListener("change", () => {
+      cfg.selected = [...cameraList.querySelectorAll("input:checked")].map(el => el.value);
+      persist();
+      renderWall();
+      updateSelectionInfo();
+    });
+    const name = document.createElement("span");
+    name.textContent = cam.name;
+    label.append(checkbox, name);
+    cameraList.append(label);
+  });
+  updateSelectionInfo();
+}
+function makeTile(cam, index) {
+  const tile = document.createElement("article");
+  tile.className = "tile";
+  tile.dataset.running = "0";
+  tile.dataset.index = String(index);
+
+  const idle = document.createElement("button");
+  idle.className = "idle";
+  idle.type = "button";
+  idle.textContent = "Ketuk untuk memutar";
+  idle.addEventListener("click", () => start(tile, cam));
+
+  const cap = document.createElement("div");
+  cap.className = "cap";
+  const title = document.createElement("span");
+  title.textContent = cam.name;
+  const acts = document.createElement("div");
+  acts.className = "acts";
+
+  const reload = document.createElement("button");
+  reload.type = "button";
+  reload.textContent = "Muat ulang";
+  reload.addEventListener("click", () => start(tile, cam));
+
+  const full = document.createElement("button");
+  full.type = "button";
+  full.textContent = "Layar penuh";
+  full.addEventListener("click", () => toggleFull(tile, cam, full));
+
+  acts.append(reload, full);
+  cap.append(title, acts);
+  tile.append(idle, cap);
+  return tile;
+}
+function clearView(tile) { tile.querySelectorAll("iframe,.wait").forEach(node => node.remove()); }
+function renderWall() {
+  startTimers.forEach(clearTimeout);
+  startTimers = [];
+  const chosen = selectedCameras().slice(0, Number(cfg.limit));
+  wall.replaceChildren();
+  wall.style.setProperty("--cols", String(columnsForLimit(Number(cfg.limit))));
+  if (!chosen.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "Belum ada kamera dipilih. Buka daftar kamera dan centang kamera yang ingin ditampilkan.";
+    wall.append(empty);
+  } else {
+    chosen.forEach(cam => wall.append(makeTile(cam, cameras.indexOf(cam))));
+  }
+  statusEl.textContent = "Menampilkan " + chosen.length + " dari " + selectedCameras().length +
+    " kamera terpilih (batas " + cfg.limit + "). Kamera belum melakukan streaming sampai dimulai.";
+}
+function build() {
+  cameras = parseCams(cfg.cams);
+  cfg.selected = cfg.selected.filter(path => cameras.some(cam => cam.main === path));
+  if (!cfg.selected.length && cameras.length && cfg.selected.length === 0 && !cfg.selectionWasCleared) {
+    cfg.selected = cameras.slice(0, 4).map(cam => cam.main);
+  }
+  renderPicker();
+  renderWall();
+}
+function start(tile, cam) {
+  let src, path;
+  try {
+    path = tile.classList.contains("full") ? cam.main : (cam.light || cam.main);
+    src = pathUrl(path);
+  } catch (error) {
+    statusEl.textContent = error.message || "Alamat WebRTC tidak valid.";
+    return;
+  }
+  clearView(tile);
+  const idle = tile.querySelector(".idle");
+  if (idle) idle.style.display = "none";
+  const wait = document.createElement("div");
+  wait.className = "wait";
+  wait.textContent = "Menyambung ke " + cam.name + "...";
+  const frame = document.createElement("iframe");
+  frame.title = cam.name;
+  frame.allow = "autoplay; fullscreen; picture-in-picture";
+  frame.setAttribute("allowfullscreen", "");
+  frame.referrerPolicy = "no-referrer";
+  frame.loading = "lazy";
+  frame.src = src;
+  frame.addEventListener("load", () => {
+    window.setTimeout(() => wait.remove(), 1800);
+    statusEl.textContent = "Pemutar dibuka: " + cam.name + " (" + path + "). Jika layar hitam, periksa sumber CloudCam.";
+  }, {once: true});
+  tile.prepend(frame, wait);
+  tile.dataset.running = "1";
+  window.setTimeout(() => wait.remove(), 12000);
+}
+function stop(tile) {
+  clearView(tile);
+  const idle = tile.querySelector(".idle");
+  if (idle) idle.style.display = "";
+  tile.dataset.running = "0";
+}
+function toggleFull(tile, cam, button) {
+  const enabled = !tile.classList.contains("full");
+  tile.classList.toggle("full", enabled);
+  button.textContent = enabled ? "Tutup" : "Layar penuh";
+  if (tile.dataset.running === "1" || enabled) start(tile, cam);
+}
+document.addEventListener("keydown", event => {
+  if (event.key !== "Escape") return;
+  const tile = wall.querySelector(".tile.full");
+  if (!tile) return;
+  const index = Number(tile.dataset.index);
+  tile.classList.remove("full");
+  const button = tile.querySelector(".acts button:last-child");
+  if (button) button.textContent = "Layar penuh";
+  if (cameras[index]) start(tile, cameras[index]);
 });
-document.getElementById("stopAll").addEventListener("click",()=>{startTimers.forEach(clearTimeout);startTimers=[];wall.querySelectorAll(".tile").forEach(stop);statusEl.textContent="Semua pemutaran dijeda.";});
-document.getElementById("cfgBtn").addEventListener("click",()=>{document.getElementById("base").value=cfg.base;document.getElementById("cams").value=cfg.cams;dlg.showModal();});
-document.getElementById("cancel").addEventListener("click",()=>dlg.close());
-document.getElementById("save").addEventListener("click",()=>{
- const base=document.getElementById("base").value.trim(),camsText=document.getElementById("cams").value;
- try{const u=new URL(base);if(!["http:","https:"].includes(u.protocol))throw new Error("Alamat WebRTC harus http:// atau https://.");if(u.username||u.password||u.search||u.hash)throw new Error("Alamat tidak boleh berisi login, query, atau fragmen.");}
- catch(e){statusEl.textContent=e.message||"Alamat WebRTC tidak valid.";return;}
- if(!parseCams(camsText).length){statusEl.textContent="Daftar kamera kosong atau format path tidak valid.";return;}
- cfg.base=base.replace(/\/+$/,"");cfg.cams=camsText;persist();dlg.close();build();
+
+document.getElementById("limit").value = String(cfg.limit);
+document.getElementById("limit").addEventListener("change", event => {
+  cfg.limit = [1, 4, 9, 16].includes(Number(event.target.value)) ? Number(event.target.value) : 4;
+  persist();
+  renderWall();
+  updateSelectionInfo();
+});
+document.getElementById("selectAllCams").addEventListener("click", () => {
+  cfg.selected = cameras.map(cam => cam.main);
+  cfg.selectionWasCleared = false;
+  persist();
+  renderPicker();
+  renderWall();
+});
+document.getElementById("firstFourCams").addEventListener("click", () => {
+  cfg.selected = cameras.slice(0, 4).map(cam => cam.main);
+  cfg.selectionWasCleared = false;
+  persist();
+  renderPicker();
+  renderWall();
+});
+document.getElementById("clearSelection").addEventListener("click", () => {
+  cfg.selected = [];
+  cfg.selectionWasCleared = true;
+  persist();
+  renderPicker();
+  renderWall();
+});
+document.getElementById("startAll").addEventListener("click", () => {
+  startTimers.forEach(clearTimeout);
+  startTimers = [];
+  const tiles = [...wall.querySelectorAll(".tile")];
+  tiles.forEach((tile, index) => {
+    startTimers.push(window.setTimeout(() => {
+      const cam = cameras[Number(tile.dataset.index)];
+      if (cam) start(tile, cam);
+    }, index * 1100));
+  });
+  statusEl.textContent = "Memulai hanya " + tiles.length + " kamera yang sedang ditampilkan.";
+});
+document.getElementById("stopAll").addEventListener("click", () => {
+  startTimers.forEach(clearTimeout);
+  startTimers = [];
+  wall.querySelectorAll(".tile").forEach(stop);
+  statusEl.textContent = "Semua pemutaran dijeda.";
+});
+document.getElementById("cfgBtn").addEventListener("click", () => {
+  document.getElementById("base").value = cfg.base;
+  document.getElementById("cams").value = cfg.cams;
+  dlg.showModal();
+});
+document.getElementById("cancel").addEventListener("click", () => dlg.close());
+document.getElementById("save").addEventListener("click", () => {
+  const base = document.getElementById("base").value.trim();
+  const camsText = document.getElementById("cams").value;
+  try {
+    const url = new URL(base);
+    if (!["http:", "https:"].includes(url.protocol)) throw new Error("Alamat WebRTC harus dimulai dengan http:// atau https://.");
+    if (url.username || url.password || url.search || url.hash) throw new Error("Alamat tidak boleh berisi login, query, atau fragmen.");
+  } catch (error) {
+    statusEl.textContent = error.message || "Alamat WebRTC tidak valid.";
+    return;
+  }
+  const parsed = parseCams(camsText);
+  if (!parsed.length) {
+    statusEl.textContent = "Daftar kamera kosong atau format path tidak valid.";
+    return;
+  }
+  cfg.base = base.replace(/\/+$/, "");
+  cfg.cams = camsText;
+  const validPaths = new Set(parsed.map(cam => cam.main));
+  cfg.selected = cfg.selected.filter(path => validPaths.has(path));
+  if (!cfg.selected.length && !cfg.selectionWasCleared) cfg.selected = parsed.slice(0, 4).map(cam => cam.main);
+  persist();
+  dlg.close();
+  build();
 });
 build();
 </script>
