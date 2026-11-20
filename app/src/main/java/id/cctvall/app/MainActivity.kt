@@ -19,7 +19,10 @@ import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.PlaybackException
 import com.google.android.exoplayer2.source.rtsp.RtspMediaSource
+import com.google.android.exoplayer2.source.hls.HlsMediaSource
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSource
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
+import java.net.URI
 
 data class CameraEntry(val name: String, val url: String, val isCloud: Boolean = false, val hlsUrl: String = "")
 
@@ -351,7 +354,35 @@ class MainActivity : Activity() {
             p.stop()
             if (useHls) {
                 status.text = "Mencoba HLS... video pertama bisa memerlukan beberapa detik."
-                p.setMediaItem(MediaItem.fromUri(Uri.parse(camera.hlsUrl)))
+                try {
+                    // MediaMTX expects HTTP Basic auth in the Authorization header for HLS,
+                    // not credentials embedded in the playlist URL.
+                    val parsed = URI(camera.hlsUrl)
+                    val userInfo = parsed.userInfo
+                    val cleanUrl = URI(
+                        parsed.scheme, null, parsed.host, parsed.port,
+                        parsed.path, parsed.query, parsed.fragment
+                    ).toASCIIString()
+                    val httpFactory = DefaultHttpDataSource.Factory()
+                        .setConnectTimeoutMs(15_000)
+                        .setReadTimeoutMs(30_000)
+                    if (!userInfo.isNullOrBlank()) {
+                        val basic = android.util.Base64.encodeToString(
+                            userInfo.toByteArray(Charsets.UTF_8),
+                            android.util.Base64.NO_WRAP
+                        )
+                        httpFactory.setDefaultRequestProperties(
+                            mapOf("Authorization" to "Basic $basic")
+                        )
+                    }
+                    val hlsSource = HlsMediaSource.Factory(httpFactory)
+                        .createMediaSource(MediaItem.fromUri(Uri.parse(cleanUrl)))
+                    p.setMediaSource(hlsSource)
+                } catch (error: Exception) {
+                    status.text = "Alamat HLS tidak valid: " + (error.message ?: "periksa konfigurasi bridge")
+                    Toast.makeText(this, status.text, Toast.LENGTH_LONG).show()
+                    return
+                }
             } else {
                 status.text = "Menghubungkan ke Hik-Connect melalui RTSP..."
                 p.setMediaSource(rtspFactory.createMediaSource(mediaItem))
