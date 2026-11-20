@@ -136,7 +136,7 @@ class MainActivity : Activity() {
         val account = EditText(this).apply {
             hint = "Username / User ID / Email Hik-Connect"
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_NORMAL
-            singleLine = true
+            isSingleLine = true
         }
         val password = EditText(this).apply {
             hint = "Kata sandi Hik-Connect"
