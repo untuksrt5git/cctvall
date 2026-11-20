@@ -128,7 +128,7 @@ class MainActivity : Activity() {
                 setPadding(8, 4, 8, 4)
             }
             val label = TextView(this).apply {
-                text = camera.name + "\\n" + camera.url
+                text = camera.name + "\n" + camera.url
                 textSize = 14f
                 setTextColor(0xFFFFFFFF.toInt())
             }
@@ -168,8 +168,8 @@ class MainActivity : Activity() {
     }
 
     private fun saveCameras() {
-        val encoded = cameras.joinToString("\\n") {
-            android.util.Base64.encodeToString((it.name + "\\u0000" + it.url).toByteArray(), android.util.Base64.NO_WRAP)
+        val encoded = cameras.joinToString("\n") {
+            android.util.Base64.encodeToString((it.name + "\u0000" + it.url).toByteArray(), android.util.Base64.NO_WRAP)
         }
         getSharedPreferences("camera_list", MODE_PRIVATE).edit().putString("items", encoded).apply()
     }
@@ -179,7 +179,7 @@ class MainActivity : Activity() {
         encoded.lines().filter { it.isNotBlank() }.forEach {
             runCatching {
                 val decoded = String(android.util.Base64.decode(it, android.util.Base64.NO_WRAP))
-                val parts = decoded.split("\\u0000", limit = 2)
+                val parts = decoded.split("\u0000", limit = 2)
                 if (parts.size == 2) cameras.add(CameraEntry(parts[0], parts[1]))
             }
         }
