@@ -70,6 +70,19 @@ Sumber Python CloudCam diambil dari repositori upstream pada commit `3d2f057ae13
 
 The CloudCam Android login field accepts a Hik-Connect username, user ID, or email. Upstream CloudCam calls the setting `email` internally for compatibility, but its Hik-Connect API request sends the value as `account`; no email-format validation should be applied by the Android UI.
 
+## HTML Android Viewer (uji lokal)
+
+Viewer multi-kamera berbasis HTML tersedia di [android-viewer/index.html](android-viewer/index.html). Viewer memuat halaman WebRTC bawaan MediaMTX untuk setiap kamera, sehingga CloudCam tetap berjalan sebagai server terpisah.
+
+Fitur awal:
+- Daftar 25 path kamera dari hasil pengujian.
+- Grid 1, 4, 9, atau 16 kamera.
+- Pilihan main stream atau substream.
+- Alamat IP dan port WebRTC dapat diubah; alamat IP contoh awal adalah `192.168.1.26`.
+- Tidak menyimpan kata sandi CloudCam di file HTML.
+
+Catatan jaringan: untuk uji pertama, buka HTML melalui HTTP di jaringan lokal yang sama dengan MediaMTX. Halaman GitHub Pages memakai HTTPS dan browser dapat memblokir iframe WebRTC yang menuju alamat HTTP lokal (mixed content). Jangan membuka port MediaMTX langsung ke internet; gunakan VPN/tunnel aman untuk akses jarak jauh.
+
 ## Android TV CloudCam Server (eksperimental)
 
 Panduan menjalankan CloudCam langsung di Android TV 10/11 melalui Termux (tanpa PC Windows): [android-tv/README.md](android-tv/README.md). Tahap pertama menguji server RTSP di jaringan lokal; akses internet jarak jauh dan autostart dibuat setelah uji perangkat berhasil.
