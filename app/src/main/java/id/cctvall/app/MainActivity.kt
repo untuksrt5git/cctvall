@@ -192,6 +192,8 @@ class MainActivity : Activity() {
                 status.post { status.text = "Login ke Hik-Connect dan mengambil daftar kamera..." }
                 val py = Python.getInstance()
                 val module = py.getModule("android_cloudcam")
+                val runtime = JSONObject(module.callAttr("runtime_info").toJava(String::class.java))
+                status.post { status.text = "Python " + runtime.optString("python") + " siap; login Hik-Connect..." }
                 val json = module.callAttr(
                     "login_and_list",
                     email,
