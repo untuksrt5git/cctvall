@@ -88,13 +88,13 @@ class MainActivity : Activity() {
 
     private fun showUniarchInfo() {
         AlertDialog.Builder(this)
-            .setTitle("Hubungkan Uniarch Care")
-            .setMessage("Status: BELUM TERSAMBUNG. Uniview menyediakan EZCloud App SDK untuk streaming P2P dan API untuk pengelolaan perangkat. SDK serta dokumentasinya perlu diperoleh melalui portal pengembang Unisee dan persyaratan integrasinya dipenuhi. Setelah SDK resmi tersedia, login akun, daftar perangkat yang dibagikan, dan live view dapat diintegrasikan di sini. Jangan masukkan kata sandi Uniarch Care di layar ini.")
-            .setPositiveButton("Buka Unisee") { _, _ ->
-                openOfficialPage("https://global-open.uniview.com/")
+            .setTitle("Uniarch Care / Uniview Cloud")
+            .setMessage("Integrasi live view Uniarch sedang disiapkan melalui EZCloud App SDK resmi. Uniview mencantumkan SDK untuk P2P dan live video, tetapi paket SDK serta kredensial integrasi belum tersedia secara publik di halaman unduhan. Login akun biasa belum otomatis memberi akses SDK. Jangan masukkan kata sandi akun di aplikasi ini sebelum modul resmi tersedia.")
+            .setPositiveButton("Buka Cloud Platform") { _, _ ->
+                openOfficialPage("https://cloud.uniview.com/mainPage/homePage")
             }
-            .setNegativeButton("Panduan EZCloud") { _, _ ->
-                openOfficialPage("https://global.uniview.com/Topics/EZCloud_Platform/")
+            .setNegativeButton("Unduh Uniarch Care") { _, _ ->
+                openOfficialPage("https://www.uniarch.cn/Support/Software/app/")
             }
             .setNeutralButton("Tutup", null)
             .show()
