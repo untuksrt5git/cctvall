@@ -97,6 +97,20 @@ class MainActivity : Activity() {
     }
 
     private fun showHikConnectInfo() {
+        AlertDialog.Builder(this)
+            .setTitle("Hik-Connect")
+            .setMessage("Login melalui halaman resmi Hik-Connect yang Anda gunakan di browser. Halaman ini memakai akun Hik-Connect, bukan akun portal Hikvision/TPP. Catatan: login web hanya membuka portal; belum otomatis memasukkan video ke daftar kamera aplikasi.")
+            .setPositiveButton("Login Web Hik-Connect") { _, _ ->
+                startActivity(Intent(this, HikConnectWebActivity::class.java))
+            }
+            .setNegativeButton("Cloud Bridge") { _, _ ->
+                showHikBridgeDialog()
+            }
+            .setNeutralButton("Tutup", null)
+            .show()
+    }
+
+    private fun showHikBridgeDialog() {
         val prefs = getSharedPreferences("hik_bridge", MODE_PRIVATE)
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
