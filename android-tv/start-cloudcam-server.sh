@@ -31,7 +31,13 @@ if [ "${#READ_USER}" -lt 3 ] || [ "${#READ_PASS}" -lt 12 ]; then
 fi
 
 echo
-echo "Menjalankan CloudCam + MediaMTX."
+MEDIAMTX_BIN="$(command -v mediamtx || true)"
+if [ -z "$MEDIAMTX_BIN" ] || [ ! -x "$MEDIAMTX_BIN" ]; then
+  echo "MediaMTX belum terpasang. Jalankan: pkg install mediamtx"
+  exit 1
+fi
+
+echo "Menjalankan CloudCam + MediaMTX: $MEDIAMTX_BIN"
 echo "Server akan mendengarkan di jaringan lokal Android TV (port RTSP 8554)."
 echo "Jangan membuka port ini langsung ke internet. Akses jarak jauh disiapkan melalui tunnel/VPN aman."
 echo
@@ -40,6 +46,6 @@ cloudcam serve \
   --listen 0.0.0.0 \
   --read-user "$READ_USER" \
   --read-pass "$READ_PASS" \
-  --install-mediamtx
+  --mediamtx "$MEDIAMTX_BIN"
 
 unset CLOUDCAM_PASSWORD READ_PASS
