@@ -90,3 +90,7 @@ Panduan menjalankan CloudCam langsung di Android TV 10/11 melalui Termux (tanpa 
 ### Rencana Uniarch Cloud Bridge (dua jalur)
 
 Rencana terpisah untuk integrasi SDK EZCloud resmi dan riset kompatibilitas berbasis observasi aplikasi yang tidak melewati autentikasi/izin: [docs/uniarch-dual-track.md](docs/uniarch-dual-track.md). Belum ada live-stream Uniarch yang diklaim aktif sampai SDK dan kredensial integrasi resmi tersedia.
+
+### Smart Life / Tuya ONVIF di HTML Viewer
+
+HTML Viewer kini memiliki pembantu konfigurasi ONVIF Tuya: memasukkan IP kamera, kredensial ONVIF, port RTSP, path RTSP, lalu membuat potongan `paths` untuk MediaMTX. Ini hanya pembuat konfigurasi; penemuan ONVIF dan relay stream tetap dilakukan oleh server MediaMTX di jaringan lokal kamera. Tidak semua kamera Tuya mendukung ONVIF/RTSP. Lihat petunjuk pengaktifan ONVIF pada aplikasi Smart Life dan pastikan kamera serta server berada pada LAN yang sama.
