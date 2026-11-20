@@ -35,6 +35,22 @@ button{background:#245e61;border:0;font-weight:650;cursor:pointer}button.seconda
 <div id="camlist" class="camlist"></div>\n<div style="border-top:1px solid var(--line);margin-top:12px;padding-top:12px"><strong>Tambah kamera dari sumber lain</strong><div class="sub" style="margin:4px 0 10px">Tuya/Smart Life ONVIF, EZVIZ, atau NVR Uniarch harus lebih dulu diteruskan ke MediaMTX sebagai WebRTC. Browser tidak dapat memutar RTSP langsung.</div><div class="controls"><div><label for="provider">Jenis perangkat</label><select id="provider"><option>Smart Life / Tuya ONVIF</option><option>EZVIZ</option><option>NVR Uniarch</option><option>RTSP / ONVIF lainnya</option></select></div><div><label for="camname">Nama kamera</label><input id="camname" placeholder="Contoh: Teras rumah"></div><div><label for="campath">Path WebRTC MediaMTX</label><input id="campath" placeholder="Contoh: tuya/teras"></div></div><div class="actions"><button class="secondary" id="addcam">Tambah ke daftar viewer</button></div></div>
 <div class="status" id="status">Pilih kamera, lalu tekan Tampilkan pilihan. Disarankan mulai dari 4 kamera.</div>
 </section>
+<section class="panel" id="tuya-setup">
+<h2 style="font-size:16px;margin:0 0 6px">Smart Life / Tuya — konfigurasi ONVIF</h2>
+<div class="sub" style="margin-bottom:10px">Bagian ini membantu menyiapkan sumber RTSP untuk MediaMTX. HTML tidak dapat menemukan kamera ONVIF atau meneruskan RTSP sendiri; server MediaMTX harus berada satu jaringan LAN dengan kamera.</div>
+<div class="controls">
+<div><label for="tuya-ip">IP kamera di jaringan lokal</label><input id="tuya-ip" placeholder="Contoh: 192.168.1.80"></div>
+<div><label for="tuya-user">Username ONVIF</label><input id="tuya-user" value="admin"></div>
+<div><label for="tuya-pass">Password ONVIF</label><input id="tuya-pass" type="password" autocomplete="off" placeholder="Password ONVIF kamera"></div>
+<div><label for="tuya-port">Port RTSP</label><input id="tuya-port" type="number" value="554"></div>
+<div><label for="tuya-path">Path RTSP dari ONVIF</label><input id="tuya-path" placeholder="Contoh: /stream1 atau /main"></div>
+<div><label for="tuya-name">Nama path MediaMTX</label><input id="tuya-name" value="tuya/kamera1"></div>
+</div>
+<div class="actions"><button id="make-tuya">Buat konfigurasi MediaMTX</button><button class="secondary" id="clear-tuya">Bersihkan password</button></div>
+<label for="tuya-output" style="margin-top:10px">Potongan konfigurasi paths untuk mediamtx.yml</label>
+<textarea id="tuya-output" rows="7" readonly style="width:100%;border-radius:8px;border:1px solid var(--line);background:#0f1a21;color:#eaf2f5;padding:10px;font:12px ui-monospace,monospace" placeholder="Konfigurasi akan muncul di sini..."></textarea>
+<div class="sub" style="margin-top:8px">Setelah konfigurasi diterapkan dan MediaMTX memuat ulang, tambahkan path yang sama (misalnya tuya/kamera1) pada bagian Tambah kamera dari sumber lain di atas. Jangan kirim konfigurasi berisi password ke GitHub atau orang lain.</div>
+</section>
 <section class="panel"><div id="grid" class="grid" data-cols="4"><div class="empty">Belum ada kamera ditampilkan.</div></div></section>
 </main>
 <script>
@@ -42,7 +58,20 @@ const cameras=[
 ["D77739233_1","RT 05 - pintu utama"],["D77739233_2","RT 05 - Camera 02"],["D77739233_3","RT 05 - Camera 03"],["D77739233_4","RT 05 - Camera 04"],["D77739233_5","RT 05 - Camera 05"],["D77739233_6","RT 05 - Camera 06"],["D77739233_7","RT 05 - Camera 07"],["D77739233_8","RT 05 - Camera 08"],["D77739233_9","RT 05 - Camera 09"],["D77739233_10","RT 05 - Camera 10"],["D77739233_11","RT 05 - Camera 11"],["D77739233_12","RT 05 - Camera 12"],["D77739233_13","RT 05 - Camera 13"],["D77739233_14","RT 05 - Camera 14"],["D77739233_15","RT 05 - Camera 15"],["D77739233_16","RT 05 - Camera 16"],["D77739233_17","RT 05 - IKHWAN"],["D77739233_18","RT 05 - Akhwat2"],["D77739233_19","RT 05 - POS RTRW"],["D77739233_20","RT 05 - POS Ngopi"],["D77739233_21","RT 05 - BALAI RT"],["D77739233_22","RT 05 - Lapangan"],["D77739233_23","RT 05 - Pdk_Klp3"],["D77739233_24","RT 05 - Perpus"],["G88779060_1","Perpus"]];
 const list=document.getElementById('camlist'),grid=document.getElementById('grid'),status=document.getElementById('status');\nconst extraCameras=[];
 cameras.forEach(([id,name],i)=>{const label=document.createElement('label');label.className='cam';const cb=document.createElement('input');cb.type='checkbox';cb.value=id;cb.checked=i<4;const span=document.createElement('span');span.textContent=name;label.append(cb,span);list.append(label)});
-function selected(){return [...list.querySelectorAll('input:checked')]}\ndocument.getElementById('addcam').onclick=()=>{const name=document.getElementById('camname').value.trim(),path=document.getElementById('campath').value.trim().replace(/^\\/+|\\/+$/g,''),provider=document.getElementById('provider').value;if(!name||!path){status.textContent='Isi nama kamera dan path WebRTC MediaMTX.';return}if(cameras.some(x=>x[0]===path)||extraCameras.some(x=>x.id===path)){status.textContent='Path tersebut sudah ada.';return}extraCameras.push({id:path,name,provider});const label=document.createElement('label');label.className='cam';const cb=document.createElement('input');cb.type='checkbox';cb.value=path;cb.checked=true;const span=document.createElement('span');span.textContent=provider+' • '+name;label.append(cb,span);list.append(label);status.textContent='Kamera masuk daftar viewer. Pastikan path sudah disediakan MediaMTX.'};
+function selected(){return [...list.querySelectorAll('input:checked')]}\ndocument.getElementById('make-tuya').onclick=()=>{
+ const ip=document.getElementById('tuya-ip').value.trim(),user=document.getElementById('tuya-user').value.trim(),pass=document.getElementById('tuya-pass').value,port=document.getElementById('tuya-port').value.trim()||'554',rtspPath=document.getElementById('tuya-path').value.trim(),name=document.getElementById('tuya-name').value.trim().replace(/^\\/+|\\/+$/g,'');
+ if(!ip||!user||!pass||!rtspPath||!name){status.textContent='Lengkapi IP, username, password ONVIF, path RTSP, dan nama path.';return}
+ const enc=v=>encodeURIComponent(v),source='rtsp://'+enc(user)+':'+enc(pass)+'@'+ip+':'+port+(rtspPath.startsWith('/')?rtspPath:'/'+rtspPath);
+ const yaml="paths:\\n  "+name+":\\n    source: '"+source.replace(/'/g,"''")+"'\\n    sourceOnDemand: yes";
+ document.getElementById('tuya-output').value=yaml;
+ status.textContent='Konfigurasi dibuat di browser. Password tidak disimpan oleh halaman; jangan membagikan hasil konfigurasi karena berisi kredensial.';
+};
+document.getElementById('clear-tuya').onclick=()=>{
+ document.getElementById('tuya-pass').value='';
+ document.getElementById('tuya-output').value='';
+ status.textContent='Kolom password dan hasil konfigurasi dibersihkan.';
+};
+document.getElementById('addcam').onclick=()=>{const name=document.getElementById('camname').value.trim(),path=document.getElementById('campath').value.trim().replace(/^\\/+|\\/+$/g,''),provider=document.getElementById('provider').value;if(!name||!path){status.textContent='Isi nama kamera dan path WebRTC MediaMTX.';return}if(cameras.some(x=>x[0]===path)||extraCameras.some(x=>x.id===path)){status.textContent='Path tersebut sudah ada.';return}extraCameras.push({id:path,name,provider});const label=document.createElement('label');label.className='cam';const cb=document.createElement('input');cb.type='checkbox';cb.value=path;cb.checked=true;const span=document.createElement('span');span.textContent=provider+' • '+name;label.append(cb,span);list.append(label);status.textContent='Kamera masuk daftar viewer. Pastikan path sudah disediakan MediaMTX.'};
 document.getElementById('all').onclick=()=>{list.querySelectorAll('input').forEach(x=>x.checked=true);status.textContent='Semua 25 kamera dipilih. Grid tetap membatasi jumlah yang ditampilkan.'};
 document.getElementById('clear').onclick=()=>{list.querySelectorAll('input').forEach(x=>x.checked=false);grid.innerHTML='<div class="empty">Pilihan dihapus.</div>'};
 document.getElementById('show').onclick=()=>{
