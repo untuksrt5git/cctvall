@@ -9,6 +9,10 @@
         android:label="CCTV All-in-One"
         android:theme="@android:style/Theme.Holo.NoActionBar"
         android:usesCleartextTraffic="true">
+        <activity
+            android:name=".HikConnectWebActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize" />
         <activity android:name=".MainActivity" android:screenOrientation="unspecified" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
