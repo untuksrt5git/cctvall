@@ -23,8 +23,10 @@ import com.google.android.exoplayer2.source.hls.HlsMediaSource
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import java.net.URI
+import com.chaquo.python.Python
+import com.chaquo.python.android.AndroidPlatform
 
-data class CameraEntry(val name: String, val url: String, val isCloud: Boolean = false, val hlsUrl: String = "")
+data class CameraEntry(val name: String, val url: String, val isCloud: Boolean = false, val hlsUrl: String = "", val directCloud: Boolean = false)
 
 class MainActivity : Activity() {
     private val cameras = mutableListOf<CameraEntry>()
@@ -106,15 +108,132 @@ class MainActivity : Activity() {
     private fun showHikConnectInfo() {
         AlertDialog.Builder(this)
             .setTitle("Hik-Connect")
-            .setMessage("Login melalui halaman resmi Hik-Connect yang Anda gunakan di browser. Halaman ini memakai akun Hik-Connect, bukan akun portal Hikvision/TPP. Catatan: login web hanya membuka portal; belum otomatis memasukkan video ke daftar kamera aplikasi.")
-            .setPositiveButton("Login Web Hik-Connect") { _, _ ->
-                startActivity(Intent(this, HikConnectWebActivity::class.java))
+            .setMessage("Pilih jalur koneksi. CloudCam Android (beta) menjalankan Python CloudCam di dalam APK untuk login dan mengambil daftar kamera tanpa PC. Live view langsung dari runtime tertanam masih dalam tahap pengembangan. Cloud Bridge tetap tersedia untuk video melalui server pendamping.")
+            .setPositiveButton("CloudCam Android (beta)") { _, _ ->
+                showHikDirectLoginDialog()
             }
             .setNegativeButton("Cloud Bridge") { _, _ ->
                 showHikBridgeDialog()
             }
-            .setNeutralButton("Tutup", null)
+            .setNeutralButton("Login Web") { _, _ ->
+                startActivity(Intent(this, HikConnectWebActivity::class.java))
+            }
             .show()
+    }
+
+    private fun showHikDirectLoginDialog() {
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(20, 8, 20, 0)
+        }
+        val email = EditText(this).apply {
+            hint = "Email akun Hik-Connect"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+        }
+        val password = EditText(this).apply {
+            hint = "Kata sandi Hik-Connect"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        panel.addView(TextView(this).apply {
+            text = "Akun dipakai langsung oleh CloudCam di perangkat ini. Kata sandi tidak disimpan oleh aplikasi."
+            setTextColor(0xFFE0E6EA.toInt())
+        })
+        panel.addView(email)
+        panel.addView(password)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("CloudCam langsung di Android")
+            .setView(panel)
+            .setNegativeButton("Batal", null)
+            .setPositiveButton("Login & cari kamera", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val user = email.text.toString().trim()
+                val pass = password.text.toString()
+                if (!user.contains("@") || pass.isBlank()) {
+                    Toast.makeText(this, "Isi email dan kata sandi akun Hik-Connect.", Toast.LENGTH_LONG).show()
+                    return@setOnClickListener
+                }
+                dialog.dismiss()
+                connectHikCloudCamDirect(user, pass)
+                password.text.clear()
+            }
+        }
+        dialog.show()
+    }
+
+    private fun connectHikCloudCamDirect(email: String, password: String) {
+        val progress = ProgressBar(this).apply { isIndeterminate = true }
+        val status = TextView(this).apply {
+            text = "Menyiapkan Python CloudCam..."
+            setTextColor(0xFFFFFFFF.toInt())
+            setPadding(16, 12, 16, 12)
+        }
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(20, 12, 20, 12)
+            addView(progress)
+            addView(status)
+        }
+        val waitDialog = AlertDialog.Builder(this)
+            .setTitle("Menghubungkan Hik-Connect")
+            .setView(panel)
+            .setCancelable(false)
+            .setNegativeButton("Tutup") { _, _ -> }
+            .create()
+        waitDialog.show()
+
+        Thread {
+            try {
+                if (!Python.isStarted()) {
+                    Python.start(AndroidPlatform(applicationContext))
+                }
+                status.post { status.text = "Login ke Hik-Connect dan mengambil daftar kamera..." }
+                val py = Python.getInstance()
+                val module = py.getModule("android_cloudcam")
+                val json = module.callAttr(
+                    "login_and_list",
+                    email,
+                    password,
+                    "hikconnect",
+                    filesDir.absolutePath + "/cloudcam-runtime"
+                ).toJava(String::class.java)
+                val result = JSONObject(json)
+                val items = result.optJSONArray("cameras") ?: org.json.JSONArray()
+                val loaded = mutableListOf<CameraEntry>()
+                for (i in 0 until items.length()) {
+                    val item = items.optJSONObject(i) ?: continue
+                    val name = item.optString("name", "Kamera Hik-Connect")
+                    val serial = item.optString("serial", "")
+                    val channel = item.optInt("channel", 1)
+                    val title = if (serial.isBlank()) name else "$name ($serial / CH$channel)"
+                    loaded.add(CameraEntry(title, "", true, "", true))
+                }
+                runOnUiThread {
+                    cloudCameras.removeAll { it.directCloud }
+                    cloudCameras.addAll(loaded)
+                    renderCameras()
+                    waitDialog.dismiss()
+                    val message = if (loaded.isEmpty()) {
+                        "Login berhasil, tetapi CloudCam tidak menemukan kamera pada akun ini."
+                    } else {
+                        "Berhasil login langsung dari Android. Ditemukan ${loaded.size} kamera. Video langsung tertanam belum diaktifkan."
+                    }
+                    Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+                }
+            } catch (error: Exception) {
+                runOnUiThread {
+                    waitDialog.dismiss()
+                    val message = error.cause?.message ?: error.message ?: "Periksa jaringan, akun, atau runtime Python."
+                    AlertDialog.Builder(this)
+                        .setTitle("CloudCam Android gagal")
+                        .setMessage(message.take(1800))
+                        .setPositiveButton("OK", null)
+                        .show()
+                }
+            }
+        }.start()
     }
 
     private fun showHikBridgeDialog() {
@@ -268,15 +387,15 @@ class MainActivity : Activity() {
             }
             val label = TextView(this).apply {
                 val source = if (camera.isCloud) "HIK-CONNECT" else "RTSP / LOKAL"
-                val detail = if (camera.isCloud) "Tekan Buka untuk melihat video langsung" else camera.url
+                val detail = when { camera.directCloud -> "CloudCam Android · daftar cloud"; camera.isCloud -> "CloudCam Bridge · tekan Buka untuk video"; else -> camera.url }
                 text = "[$source] " + camera.name + "\n" + detail
                 textSize = 13f
                 setTextColor(0xFFFFFFFF.toInt())
             }
             row.addView(label, LinearLayout.LayoutParams(0, -2, 1f))
             row.addView(Button(this).apply {
-                text = "Buka"
-                setOnClickListener { playCamera(camera) }
+                text = if (camera.directCloud) "Info" else "Buka"
+                setOnClickListener { if (camera.directCloud) showDirectCloudPlaybackInfo() else playCamera(camera) }
             })
             row.addView(Button(this).apply {
                 text = if (camera.isCloud) "Lepas" else "Hapus"
@@ -294,6 +413,14 @@ class MainActivity : Activity() {
             list.addView(View(this).apply { setBackgroundColor(0xFF34434D.toInt()) },
                 LinearLayout.LayoutParams(-1, 1))
         }
+    }
+
+    private fun showDirectCloudPlaybackInfo() {
+        AlertDialog.Builder(this)
+            .setTitle("CloudCam Android")
+            .setMessage("Login dan daftar kamera sudah dijalankan langsung di perangkat Android. Untuk live view, CloudCam upstream masih memakai proses Python/FFmpeg terpisah (subprocess), yang tidak tersedia di runtime Python tertanam Android. Tahap berikutnya adalah mengganti jalur proses tersebut dengan stream decoder Android native. Untuk sementara, gunakan menu Cloud Bridge bila ingin menonton video.")
+            .setPositiveButton("OK", null)
+            .show()
     }
 
     private fun playCamera(camera: CameraEntry) {
