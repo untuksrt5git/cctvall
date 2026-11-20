@@ -39,14 +39,13 @@ dialog::backdrop{background:rgba(0,0,0,.55)}label{display:block;font-weight:600;
 input,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px}
 textarea{min-height:260px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
 .hint{color:var(--mute);font-size:13px;margin:4px 0 0}.row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
-@media(max-width:560px){#wall{grid-template-columns:repeat(min(var(--cols,2),2),minmax(0,1fr))}.tile{aspect-ratio:16/9}}
-@media(max-width:370px){#wall{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <header><h1>Dinding CCTV</h1><div class="bar">
 <label for="limit" style="margin:0;font-weight:400">Jumlah tampil</label>
 <select id="limit"><option value="1">1 kamera</option><option value="4" selected>4 kamera</option><option value="9">9 kamera (lebih berat)</option><option value="16">16 kamera (berat)</option></select>
+<label for="columns" style="margin:0;font-weight:400">Kolom</label><select id="columns"><option value="1">1 kolom</option><option value="2" selected>2 kolom</option><option value="3">3 kolom</option><option value="4">4 kolom</option></select>
 <button id="startAll" class="primary">Mulai yang tampil</button><button id="stopAll">Jeda semua</button><button id="cfgBtn">Pengaturan</button>
 </div></header>
 <main>
@@ -92,6 +91,7 @@ const KEY = "cctv-wall-v2";
 const DEFAULT = {
   base: "http://127.0.0.1:8889",
   limit: 4,
+  columns: 2,
   cams: "RT 05 - pintu utama | cam/D77739233_1 | cam/D77739233_1/sub\nRT 05 - Camera 02 | cam/D77739233_2 | cam/D77739233_2/sub\nRT 05 - Camera 03 | cam/D77739233_3 | cam/D77739233_3/sub\nRT 05 - Camera 04 | cam/D77739233_4 | cam/D77739233_4/sub\nRT 05 - Camera 05 | cam/D77739233_5 | cam/D77739233_5/sub\nRT 05 - Camera 06 | cam/D77739233_6 | cam/D77739233_6/sub\nRT 05 - Camera 07 | cam/D77739233_7 | cam/D77739233_7/sub\nRT 05 - Camera 08 | cam/D77739233_8 | cam/D77739233_8/sub\nRT 05 - Camera 09 | cam/D77739233_9 | cam/D77739233_9/sub\nRT 05 - Camera 10 | cam/D77739233_10 | cam/D77739233_10/sub\nRT 05 - Camera 11 | cam/D77739233_11 | cam/D77739233_11/sub\nRT 05 - Camera 12 | cam/D77739233_12 | cam/D77739233_12/sub\nRT 05 - Camera 13 | cam/D77739233_13 | cam/D77739233_13/sub\nRT 05 - Camera 14 | cam/D77739233_14 | cam/D77739233_14/sub\nRT 05 - Camera 15 | cam/D77739233_15 | cam/D77739233_15/sub\nRT 05 - Camera 16 | cam/D77739233_16 | cam/D77739233_16/sub\nRT 05 - IKHWAN | cam/D77739233_17 | cam/D77739233_17/sub\nRT 05 - Akhwat2 | cam/D77739233_18 | cam/D77739233_18/sub\nRT 05 - POS RTRW | cam/D77739233_19 | cam/D77739233_19/sub\nRT 05 - POS Ngopi | cam/D77739233_20 | cam/D77739233_20/sub\nRT 05 - BALAI RT | cam/D77739233_21 | cam/D77739233_21/sub\nRT 05 - Lapangan | cam/D77739233_22 | cam/D77739233_22/sub\nRT 05 - Pdk_Klp3 | cam/D77739233_23 | cam/D77739233_23/sub\nRT 05 - Perpus | cam/D77739233_24 | cam/D77739233_24/sub\nPerpus | cam/G88779060_1 | cam/G88779060_1/sub\nTuya 1 | rtsp/tuya1"
 };
 function parseCams(source) {
@@ -119,6 +119,7 @@ let cfg = loadConfig();
 let cameras = parseCams(cfg.cams);
 let startTimers = [];
 if (![1, 4, 9, 16].includes(Number(cfg.limit))) cfg.limit = 4;
+if (![1, 2, 3, 4].includes(Number(cfg.columns))) cfg.columns = 2;
 if (!Array.isArray(cfg.selected)) cfg.selected = cameras.slice(0, 4).map(c => c.main);
 cfg.selected = cfg.selected.filter(path => cameras.some(c => c.main === path));
 
@@ -143,9 +144,6 @@ function pathUrl(path) { return baseUrl() + "/" + path.replace(/^\/+/, ""); }
 function selectedCameras() {
   const selected = new Set(cfg.selected);
   return cameras.filter(cam => selected.has(cam.main));
-}
-function columnsForLimit(limit) {
-  return limit === 1 ? 1 : limit === 4 ? 2 : limit === 9 ? 3 : 4;
 }
 function updateSelectionInfo() {
   const count = selectedCameras().length;
@@ -215,7 +213,7 @@ function renderWall() {
   startTimers = [];
   const chosen = selectedCameras().slice(0, Number(cfg.limit));
   wall.replaceChildren();
-  wall.style.setProperty("--cols", String(columnsForLimit(Number(cfg.limit))));
+  wall.style.setProperty("--cols", String(cfg.columns));
   if (!chosen.length) {
     const empty = document.createElement("div");
     empty.className = "empty";
@@ -290,6 +288,12 @@ document.addEventListener("keydown", event => {
 });
 
 document.getElementById("limit").value = String(cfg.limit);
+document.getElementById("columns").value = String(cfg.columns);
+document.getElementById("columns").addEventListener("change", event => {
+  cfg.columns = [1, 2, 3, 4].includes(Number(event.target.value)) ? Number(event.target.value) : 2;
+  persist();
+  renderWall();
+});
 document.getElementById("limit").addEventListener("change", event => {
   cfg.limit = [1, 4, 9, 16].includes(Number(event.target.value)) ? Number(event.target.value) : 4;
   persist();
