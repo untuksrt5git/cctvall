@@ -120,13 +120,15 @@ function loadConfig() {
       const merged = {...DEFAULT, ...saved};
       // Migrasi aman untuk daftar bawaan lama: buang G887 yang tidak dipakai,
       // lalu tambahkan kedua kamera Tuya. Pilihan "semua" ikut dipindahkan.
-      if (typeof saved.cams === "string" && saved.cams.includes("cam/G88779060_1") &&
-          !saved.cams.includes("rtsp/tuya_kamera2")) {
+      if (typeof saved.cams === "string" && saved.cams.includes("cam/G88779060_1")) {
         const oldPaths = parseCams(saved.cams);
         const oldSelected = Array.isArray(saved.selected) ? saved.selected : [];
         const hadAll = oldPaths.length > 0 && oldSelected.length >= oldPaths.length;
         const lines = saved.cams.split(/\r?\n/).filter(line => !line.includes("cam/G88779060_1"));
-        if (lines.some(line => line.includes("rtsp/tuya1"))) lines.push("Tuya 2 | rtsp/tuya_kamera2");
+        if (lines.some(line => line.includes("rtsp/tuya1")) &&
+            !lines.some(line => line.includes("rtsp/tuya_kamera2"))) {
+          lines.push("Tuya 2 | rtsp/tuya_kamera2");
+        }
         merged.cams = lines.join("\n");
         merged.selected = hadAll ? parseCams(merged.cams).map(cam => cam.main) :
           oldSelected.filter(path => path !== "cam/G88779060_1");
