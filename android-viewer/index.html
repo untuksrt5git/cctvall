@@ -24,6 +24,10 @@ main{display:grid;gap:10px;padding:12px}#wall{display:grid;gap:10px;grid-templat
 .cap span{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cap .acts{display:flex;gap:6px;pointer-events:auto;flex-shrink:0}
 .cap button{padding:3px 9px;font-size:12px;background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)}
 .tile.full{position:fixed;inset:0;z-index:20;border-radius:0;aspect-ratio:auto;border:0;background:#000}
+.pager{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;padding:4px 0}
+.pager[hidden]{display:none}
+.pager span{min-width:180px;text-align:center;color:var(--mute);font-size:13px}
+button:disabled{opacity:.45;cursor:not-allowed}
 .empty{grid-column:1/-1;padding:40px 16px;text-align:center;color:var(--mute)}.status{color:var(--mute);font-size:13px;padding:0 2px}.note{color:var(--mute);font-size:12px;padding:0 2px}
 .picker-panel{border:1px solid var(--line);border-radius:9px;background:var(--panel);padding:10px}
 .picker-panel summary{font-weight:650;cursor:pointer}
@@ -44,18 +48,19 @@ textarea{min-height:260px;font-family:ui-monospace,Menlo,Consolas,monospace;font
 <body>
 <header><h1>Dinding CCTV</h1><div class="bar">
 <label for="limit" style="margin:0;font-weight:400">Jumlah tampil</label>
-<select id="limit"><option value="1">1 kamera</option><option value="4" selected>4 kamera</option><option value="9">9 kamera (lebih berat)</option><option value="16">16 kamera (berat)</option></select>
+<select id="limit"><option value="1">1 kamera</option><option value="4" selected>4 kamera/halaman</option><option value="6">6 kamera/halaman (maksimal)</option></select>
 <label for="columns" style="margin:0;font-weight:400">Kolom</label><select id="columns"><option value="1">1 kolom</option><option value="2" selected>2 kolom</option><option value="3">3 kolom</option><option value="4">4 kolom</option></select>
 <button id="startAll" class="primary">Mulai yang tampil</button><button id="stopAll">Jeda semua</button><button id="cfgBtn">Pengaturan</button>
 </div></header>
 <main>
-<div class="note">Awal hanya 4 kamera yang dipilih. Streaming tidak berjalan sebelum tombol Mulai ditekan. Disarankan 4 kamera dahulu untuk HP; 9 atau 16 kamera dapat lebih berat.</div>
+<div class="note">Pilih semua kamera yang diperlukan. Dashboard menampilkan 4 kamera per halaman secara default (maksimal 6). Hanya kamera pada halaman aktif yang dapat melakukan streaming.</div>
 <details class="picker-panel">
 <summary>Pilih kamera yang ingin ditampilkan</summary>
 <div class="picker-actions"><button type="button" id="selectAllCams">Pilih semua</button><button type="button" id="firstFourCams">Pilih 4 awal</button><button type="button" id="clearSelection">Kosongkan</button></div>
 <div id="cameraList" class="camera-list"></div>
 <div class="picker-info" id="selectionInfo"></div>
 </details>
+<nav id="pager" class="pager" aria-label="Navigasi halaman kamera" hidden><button type="button" id="prevPage">← Sebelumnya</button><span id="pageInfo" aria-live="polite"></span><button type="button" id="nextPage">Berikutnya →</button></nav>
 <section id="wall" aria-label="Dinding kamera"></section>
 
 <details class="picker-panel" id="webAddPanel">
@@ -92,7 +97,7 @@ const DEFAULT = {
   base: "http://127.0.0.1:8889",
   limit: 4,
   columns: 2,
-  cams: "RT 05 - pintu utama | cam/D77739233_1 | cam/D77739233_1/sub\nRT 05 - Camera 02 | cam/D77739233_2 | cam/D77739233_2/sub\nRT 05 - Camera 03 | cam/D77739233_3 | cam/D77739233_3/sub\nRT 05 - Camera 04 | cam/D77739233_4 | cam/D77739233_4/sub\nRT 05 - Camera 05 | cam/D77739233_5 | cam/D77739233_5/sub\nRT 05 - Camera 06 | cam/D77739233_6 | cam/D77739233_6/sub\nRT 05 - Camera 07 | cam/D77739233_7 | cam/D77739233_7/sub\nRT 05 - Camera 08 | cam/D77739233_8 | cam/D77739233_8/sub\nRT 05 - Camera 09 | cam/D77739233_9 | cam/D77739233_9/sub\nRT 05 - Camera 10 | cam/D77739233_10 | cam/D77739233_10/sub\nRT 05 - Camera 11 | cam/D77739233_11 | cam/D77739233_11/sub\nRT 05 - Camera 12 | cam/D77739233_12 | cam/D77739233_12/sub\nRT 05 - Camera 13 | cam/D77739233_13 | cam/D77739233_13/sub\nRT 05 - Camera 14 | cam/D77739233_14 | cam/D77739233_14/sub\nRT 05 - Camera 15 | cam/D77739233_15 | cam/D77739233_15/sub\nRT 05 - Camera 16 | cam/D77739233_16 | cam/D77739233_16/sub\nRT 05 - IKHWAN | cam/D77739233_17 | cam/D77739233_17/sub\nRT 05 - Akhwat2 | cam/D77739233_18 | cam/D77739233_18/sub\nRT 05 - POS RTRW | cam/D77739233_19 | cam/D77739233_19/sub\nRT 05 - POS Ngopi | cam/D77739233_20 | cam/D77739233_20/sub\nRT 05 - BALAI RT | cam/D77739233_21 | cam/D77739233_21/sub\nRT 05 - Lapangan | cam/D77739233_22 | cam/D77739233_22/sub\nRT 05 - Pdk_Klp3 | cam/D77739233_23 | cam/D77739233_23/sub\nRT 05 - Perpus | cam/D77739233_24 | cam/D77739233_24/sub\nPerpus | cam/G88779060_1 | cam/G88779060_1/sub\nTuya 1 | rtsp/tuya1"
+  cams: "RT 05 - pintu utama | cam/D77739233_1 | cam/D77739233_1/sub\nRT 05 - Camera 02 | cam/D77739233_2 | cam/D77739233_2/sub\nRT 05 - Camera 03 | cam/D77739233_3 | cam/D77739233_3/sub\nRT 05 - Camera 04 | cam/D77739233_4 | cam/D77739233_4/sub\nRT 05 - Camera 05 | cam/D77739233_5 | cam/D77739233_5/sub\nRT 05 - Camera 06 | cam/D77739233_6 | cam/D77739233_6/sub\nRT 05 - Camera 07 | cam/D77739233_7 | cam/D77739233_7/sub\nRT 05 - Camera 08 | cam/D77739233_8 | cam/D77739233_8/sub\nRT 05 - Camera 09 | cam/D77739233_9 | cam/D77739233_9/sub\nRT 05 - Camera 10 | cam/D77739233_10 | cam/D77739233_10/sub\nRT 05 - Camera 11 | cam/D77739233_11 | cam/D77739233_11/sub\nRT 05 - Camera 12 | cam/D77739233_12 | cam/D77739233_12/sub\nRT 05 - Camera 13 | cam/D77739233_13 | cam/D77739233_13/sub\nRT 05 - Camera 14 | cam/D77739233_14 | cam/D77739233_14/sub\nRT 05 - Camera 15 | cam/D77739233_15 | cam/D77739233_15/sub\nRT 05 - Camera 16 | cam/D77739233_16 | cam/D77739233_16/sub\nRT 05 - IKHWAN | cam/D77739233_17 | cam/D77739233_17/sub\nRT 05 - Akhwat2 | cam/D77739233_18 | cam/D77739233_18/sub\nRT 05 - POS RTRW | cam/D77739233_19 | cam/D77739233_19/sub\nRT 05 - POS Ngopi | cam/D77739233_20 | cam/D77739233_20/sub\nRT 05 - BALAI RT | cam/D77739233_21 | cam/D77739233_21/sub\nRT 05 - Lapangan | cam/D77739233_22 | cam/D77739233_22/sub\nRT 05 - Pdk_Klp3 | cam/D77739233_23 | cam/D77739233_23/sub\nRT 05 - Perpus | cam/D77739233_24 | cam/D77739233_24/sub\nTuya 1 | rtsp/tuya1\nTuya 2 | rtsp/tuya_kamera2"
 };
 function parseCams(source) {
   const result = [];
@@ -111,14 +116,33 @@ function parseCams(source) {
 function loadConfig() {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || "null");
-    if (saved && typeof saved === "object") return {...DEFAULT, ...saved};
+    if (saved && typeof saved === "object") {
+      const merged = {...DEFAULT, ...saved};
+      // Migrasi aman untuk daftar bawaan lama: buang G887 yang tidak dipakai,
+      // lalu tambahkan kedua kamera Tuya. Pilihan "semua" ikut dipindahkan.
+      if (typeof saved.cams === "string" && saved.cams.includes("cam/G88779060_1")) {
+        const oldPaths = parseCams(saved.cams);
+        const oldSelected = Array.isArray(saved.selected) ? saved.selected : [];
+        const hadAll = oldPaths.length > 0 && oldSelected.length >= oldPaths.length;
+        const lines = saved.cams.split(/\r?\n/).filter(line => !line.includes("cam/G88779060_1"));
+        if (lines.some(line => line.includes("rtsp/tuya1")) &&
+            !lines.some(line => line.includes("rtsp/tuya_kamera2"))) {
+          lines.push("Tuya 2 | rtsp/tuya_kamera2");
+        }
+        merged.cams = lines.join("\n");
+        merged.selected = hadAll ? parseCams(merged.cams).map(cam => cam.main) :
+          oldSelected.filter(path => path !== "cam/G88779060_1");
+      }
+      return merged;
+    }
   } catch (_) {}
   return {...DEFAULT};
 }
 let cfg = loadConfig();
 let cameras = parseCams(cfg.cams);
 let startTimers = [];
-if (![1, 4, 9, 16].includes(Number(cfg.limit))) cfg.limit = 4;
+let currentPage = 0;
+if (![1, 4, 6].includes(Number(cfg.limit))) cfg.limit = 4;
 if (![1, 2, 3, 4].includes(Number(cfg.columns))) cfg.columns = 2;
 if (!Array.isArray(cfg.selected)) cfg.selected = cameras.slice(0, 4).map(c => c.main);
 cfg.selected = cfg.selected.filter(path => cameras.some(c => c.main === path));
@@ -128,6 +152,10 @@ const statusEl = document.getElementById("status");
 const dlg = document.getElementById("dlg");
 const cameraList = document.getElementById("cameraList");
 const selectionInfo = document.getElementById("selectionInfo");
+const pager = document.getElementById("pager");
+const pageInfo = document.getElementById("pageInfo");
+const prevPageButton = document.getElementById("prevPage");
+const nextPageButton = document.getElementById("nextPage");
 
 function persist() {
   try { localStorage.setItem(KEY, JSON.stringify(cfg)); }
@@ -147,8 +175,8 @@ function selectedCameras() {
 }
 function updateSelectionInfo() {
   const count = selectedCameras().length;
-  selectionInfo.textContent = count + " kamera dipilih. Maksimal " + cfg.limit +
-    " kamera ditampilkan sekaligus. Tombol Mulai hanya menjalankan kamera yang sedang tampil.";
+  selectionInfo.textContent = count + " kamera dipilih. " + cfg.limit +
+    " kamera per halaman. Streaming hanya berjalan pada halaman yang sedang dibuka."
 }
 function renderPicker() {
   cameraList.replaceChildren();
@@ -209,9 +237,16 @@ function makeTile(cam, index) {
 }
 function clearView(tile) { tile.querySelectorAll("iframe,.wait").forEach(node => node.remove()); }
 function renderWall() {
+  // Melepas iframe saat pindah halaman juga menghentikan playback halaman sebelumnya.
   startTimers.forEach(clearTimeout);
   startTimers = [];
-  const chosen = selectedCameras().slice(0, Number(cfg.limit));
+  const all = selectedCameras();
+  const pageSize = Number(cfg.limit);
+  const totalPages = Math.max(1, Math.ceil(all.length / pageSize));
+  currentPage = Math.min(Math.max(0, currentPage), totalPages - 1);
+  const offset = currentPage * pageSize;
+  const chosen = all.slice(offset, offset + pageSize);
+
   wall.replaceChildren();
   wall.style.setProperty("--cols", String(cfg.columns));
   if (!chosen.length) {
@@ -222,8 +257,17 @@ function renderWall() {
   } else {
     chosen.forEach(cam => wall.append(makeTile(cam, cameras.indexOf(cam))));
   }
-  statusEl.textContent = "Menampilkan " + chosen.length + " dari " + selectedCameras().length +
-    " kamera terpilih (batas " + cfg.limit + "). Kamera belum melakukan streaming sampai dimulai.";
+
+  pager.hidden = totalPages <= 1;
+  pageInfo.textContent = "Halaman " + (currentPage + 1) + "/" + totalPages +
+    " · kamera " + (all.length ? offset + 1 : 0) + "-" + (offset + chosen.length) +
+    " dari " + all.length;
+  prevPageButton.disabled = currentPage === 0;
+  nextPageButton.disabled = currentPage >= totalPages - 1;
+  statusEl.textContent = all.length
+    ? "Halaman " + (currentPage + 1) + "/" + totalPages + ": menampilkan " + chosen.length +
+      " kamera. Total pilihan " + all.length + ". Streaming hanya untuk halaman aktif."
+    : "Belum ada kamera dipilih. Buka daftar kamera dan centang kamera yang ingin ditampilkan.";
 }
 function build() {
   cameras = parseCams(cfg.cams);
@@ -295,12 +339,22 @@ document.getElementById("columns").addEventListener("change", event => {
   renderWall();
 });
 document.getElementById("limit").addEventListener("change", event => {
-  cfg.limit = [1, 4, 9, 16].includes(Number(event.target.value)) ? Number(event.target.value) : 4;
+  cfg.limit = [1, 4, 6].includes(Number(event.target.value)) ? Number(event.target.value) : 4;
+  currentPage = 0;
   persist();
   renderWall();
   updateSelectionInfo();
 });
+prevPageButton.addEventListener("click", () => {
+  currentPage = Math.max(0, currentPage - 1);
+  renderWall();
+});
+nextPageButton.addEventListener("click", () => {
+  currentPage = currentPage + 1;
+  renderWall();
+});
 document.getElementById("selectAllCams").addEventListener("click", () => {
+  currentPage = 0;
   cfg.selected = cameras.map(cam => cam.main);
   cfg.selectionWasCleared = false;
   persist();
@@ -308,6 +362,7 @@ document.getElementById("selectAllCams").addEventListener("click", () => {
   renderWall();
 });
 document.getElementById("firstFourCams").addEventListener("click", () => {
+  currentPage = 0;
   cfg.selected = cameras.slice(0, 4).map(cam => cam.main);
   cfg.selectionWasCleared = false;
   persist();
@@ -315,6 +370,7 @@ document.getElementById("firstFourCams").addEventListener("click", () => {
   renderWall();
 });
 document.getElementById("clearSelection").addEventListener("click", () => {
+  currentPage = 0;
   cfg.selected = [];
   cfg.selectionWasCleared = true;
   persist();
@@ -325,7 +381,7 @@ document.getElementById("startAll").addEventListener("click", () => {
   startTimers.forEach(clearTimeout);
   startTimers = [];
   const tiles = [...wall.querySelectorAll(".tile")];
-  if (tiles.length > 4 && !window.confirm("Anda akan menjalankan " + tiles.length + " stream sekaligus. Ini dapat membebani HP dan jaringan. Lanjutkan?")) return;
+  if (tiles.length > 4 && !window.confirm("Anda akan menjalankan " + tiles.length + " stream sekaligus. Ini dapat membebani Android TV dan jaringan. Lanjutkan?")) return;
   tiles.forEach((tile, index) => {
     startTimers.push(window.setTimeout(() => {
       const cam = cameras[Number(tile.dataset.index)];
@@ -407,6 +463,7 @@ document.getElementById("save").addEventListener("click", () => {
   }
   cfg.base = base.replace(/\/+$/, "");
   cfg.cams = camsText;
+  currentPage = 0;
   const validPaths = new Set(parsed.map(cam => cam.main));
   cfg.selected = cfg.selected.filter(path => validPaths.has(path));
   if (!cfg.selected.length && !cfg.selectionWasCleared) cfg.selected = parsed.slice(0, 4).map(cam => cam.main);
